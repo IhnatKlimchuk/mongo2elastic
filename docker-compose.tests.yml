@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:5.0
+    container_name: m2e-test-mongo
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/admin --quiet
+      interval: 1s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: mongod --quiet --logpath /dev/null 
+    ports:
+      - 30000:27017
+    volumes:
+      - m2e-test-mongo:/data/db
+
+  elasticsearch:
+    image: elasticsearch:7.17.0
+    container_name: m2e-test-elastic
+    healthcheck:
+      test: curl -u elastic:elastic -s -f elasticsearch:9200/_cat/health >/dev/null || exit 1
+      interval: 1s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    environment:
+      - discovery.type=single-node
+      - logger.level=ERROR
+    ports:
+      - 31000:9200
+      - 31100:9300
+    volumes:
+      - m2e-test-elastic:/usr/share/elasticsearch/data
+    
+volumes:
+  m2e-test-mongo:
+    name: m2e-test-mongo
+  m2e-test-elastic:
+    name: m2e-test-elastic
