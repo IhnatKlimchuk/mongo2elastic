@@ -1,20 +1,61 @@
 version: '3.8'
 
 services:
-  mongodb:
+  mongodb1:
     image: mongo:5.0
-    container_name: m2e-test-mongo
+    container_name: m2e-test-mongo1
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/admin --quiet
       interval: 1s
       timeout: 10s
       retries: 5
       start_period: 60s
-    command: mongod --quiet --logpath /dev/null 
+    command: mongod --bind_ip_all --replSet rs0 --quiet --logpath /dev/null
     ports:
       - 30000:27017
     volumes:
-      - m2e-test-mongo:/data/db
+      - m2e-test-mongo1:/data/db
+
+  mongodb2:
+    image: mongo:5.0
+    container_name: m2e-test-mongo2
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/admin --quiet
+      interval: 1s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: mongod --bind_ip_all --replSet rs0 --quiet --logpath /dev/null
+    ports:
+      - 30100:27017
+    volumes:
+      - m2e-test-mongo2:/data/db
+
+  mongodb3:
+    image: mongo:5.0
+    container_name: m2e-test-mongo3
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/admin --quiet
+      interval: 1s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: mongod --bind_ip_all --replSet rs0 --quiet --logpath /dev/null 
+    ports:
+      - 30200:27017
+    volumes:
+      - m2e-test-mongo3:/data/db
+
+  mongosetup:
+    image: mongo:5.0
+    depends_on:
+      - mongodb1
+      - mongodb2
+      - mongodb3
+    volumes:
+      - .:/scripts
+    restart: "no"
+    entrypoint: [ "bash", "/scripts/mongo_setup.sh"]
 
   elasticsearch:
     image: elasticsearch:7.17.0
@@ -35,7 +76,11 @@ services:
       - m2e-test-elastic:/usr/share/elasticsearch/data
     
 volumes:
-  m2e-test-mongo:
-    name: m2e-test-mongo
+  m2e-test-mongo1:
+    name: m2e-test-mongo1
+  m2e-test-mongo2:
+    name: m2e-test-mongo2
+  m2e-test-mongo3:
+    name: m2e-test-mongo3
   m2e-test-elastic:
     name: m2e-test-elastic
