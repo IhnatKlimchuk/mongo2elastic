@@ -46,6 +46,15 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
             return personsToAdd;
         }
 
+        public async Task DeletePersonAsync(Guid personId, CancellationToken cancellationToken = default)
+        {
+            var result = await PersonCollection.DeleteOneAsync(Builders<Person>.Filter.Eq(x => x.Id, personId), cancellationToken);
+            if (result.DeletedCount != 1)
+            {
+                throw new InvalidOperationException("Failed to delete person");
+            }
+        }
+
         public Task DeleteAllPersonsAsync(CancellationToken cancellationToken = default)
         {
             return PersonCollection.DeleteManyAsync(Builders<Person>.Filter.Empty, cancellationToken);
@@ -58,6 +67,16 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
                 replacement: new ReplicationState { ReplicationKey = replicationKey },
                 options: new ReplaceOptions { IsUpsert = true },
                 cancellationToken: cancellationToken);
+        }
+
+        public async Task<ReplicationState?> GetReplicationStateOrDefaultAsync(string replicationKey, CancellationToken cancellationToken = default)
+        {
+            var cursor = await ReplicationStateCollection.FindAsync(
+                filter: Builders<ReplicationState>.Filter.Eq(x => x.ReplicationKey, replicationKey),
+                options: default,
+                cancellationToken: cancellationToken);
+
+            return await cursor.SingleOrDefaultAsync();
         }
 
         public void Dispose()

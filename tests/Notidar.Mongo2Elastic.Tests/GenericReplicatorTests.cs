@@ -44,7 +44,7 @@ namespace Notidar.Mongo2Elastic.Tests
             _replicator = new GenericReplicator<Fixtures.Mongo.Person, Guid, Fixtures.Elastic.Person>(
                 new MongoReplicationStateRepository(_mongoDbFixture.ReplicationStateCollection),
                 new DestinationRepository<Fixtures.Elastic.Person>(_elasticSearchFixture.Client, "persons"),
-                new SourceRepository<Fixtures.Mongo.Person>(_mongoDbFixture.PersonCollection),
+                new SourceRepository<Fixtures.Mongo.Person, Guid>(_mongoDbFixture.PersonCollection, x => x.Id),
                 x => new Fixtures.Elastic.Person { Id = x.Id },
                 _options);
         }
@@ -84,6 +84,65 @@ namespace Notidar.Mongo2Elastic.Tests
             {
                 var count = await _elasticSearchFixture.CountPersonsAsync();
                 Assert.Equal(mongoPersons.Count, count);
+            });
+            cancellationTokenSource.Cancel();
+
+            await task;
+        }
+
+        [Fact]
+        public async Task GenericReplicator_ReplicateAddedDocument_Success()
+        {
+            await _mongoDbFixture.ResetReplicationStateAsync(_options.ReplicationName);
+            await _mongoDbFixture.DeleteAllPersonsAsync();
+            await _elasticSearchFixture.DeleteAllPersonsAsync();
+
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var task = _replicator.ExecuteAsync(cancellationTokenSource.Token);
+
+            await Assertion.Eventually(async () =>
+            {
+                var state = await _mongoDbFixture.GetReplicationStateOrDefaultAsync(_options.ReplicationName);
+                Assert.NotNull(state?.ResumeToken);
+            });
+
+            var mongoPersons = await _mongoDbFixture.AddNewPersonsAsync(1);
+            var mongoPerson = mongoPersons.Single();
+
+            await Assertion.Eventually(async () =>
+            {
+                var elasticPerson = await _elasticSearchFixture.GetPersonOrDefaultAsync(mongoPerson.Id);
+                Assert.Equal(mongoPerson.Id, elasticPerson?.Id);
+            });
+            cancellationTokenSource.Cancel();
+
+            await task;
+        }
+
+        [Fact]
+        public async Task GenericReplicator_ReplicateDeletedDocument_Success()
+        {
+            await _mongoDbFixture.ResetReplicationStateAsync(_options.ReplicationName);
+            await _mongoDbFixture.DeleteAllPersonsAsync();
+            await _elasticSearchFixture.DeleteAllPersonsAsync();
+            var mongoPersons = await _mongoDbFixture.AddNewPersonsAsync(1);
+            var mongoPerson = mongoPersons.Single();
+
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var task = _replicator.ExecuteAsync(cancellationTokenSource.Token);
+
+            await Assertion.Eventually(async () =>
+            {
+                var elasticPerson = await _elasticSearchFixture.GetPersonOrDefaultAsync(mongoPerson.Id);
+                Assert.Equal(mongoPerson.Id, elasticPerson?.Id);
+            });
+
+            await _mongoDbFixture.DeletePersonAsync(mongoPerson.Id);
+
+            await Assertion.Eventually(async () =>
+            {
+                var elasticPerson = await _elasticSearchFixture.GetPersonOrDefaultAsync(mongoPerson.Id);
+                Assert.Null(elasticPerson?.Id);
             });
             cancellationTokenSource.Cancel();
 

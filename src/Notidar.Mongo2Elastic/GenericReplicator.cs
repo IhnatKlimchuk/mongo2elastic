@@ -11,8 +11,8 @@ namespace Notidar.Mongo2Elastic
     {
         private readonly IReplicationStateRepository _replicationStateRepository;
         private readonly IDestinationRepository<TDestinationDocument> _destinationRepository;
-        private readonly ISourceRepository<TSourceDocument> _sourceRepository;
-        private readonly Func<TSourceDocument, TDestinationDocument>? _map;
+        private readonly ISourceRepository<TSourceDocument, TKey> _sourceRepository;
+        private readonly Func<TSourceDocument, TDestinationDocument> _map;
         private readonly ReplicatorOptions _options;
 
         private readonly Guid _replicatorId;
@@ -20,8 +20,8 @@ namespace Notidar.Mongo2Elastic
         public GenericReplicator(
             IReplicationStateRepository replicationStateRepository,
             IDestinationRepository<TDestinationDocument> destinationRepository,
-            ISourceRepository<TSourceDocument> sourceRepository,
-            Func<TSourceDocument,TDestinationDocument> map,
+            ISourceRepository<TSourceDocument, TKey> sourceRepository,
+            Func<TSourceDocument, TDestinationDocument> map,
             ReplicatorOptions options)
         {
             _replicationStateRepository = replicationStateRepository;
@@ -126,7 +126,7 @@ namespace Notidar.Mongo2Elastic
                 await FullSyncAsync(cancellationToken);
             }
 
-            await foreach (var batch in stream.ToAsyncEnumerable(cancellationToken))
+            await foreach (var batch in stream.WithCancellation(cancellationToken))
             {
                 var resumeToken = stream.GetResumeToken();
                 if (batch.Any())
@@ -137,12 +137,27 @@ namespace Notidar.Mongo2Elastic
             }
         }
 
-        private Task SyncBatchAsync(IEnumerable<ChangeStreamDocument<TSourceDocument>> changes, CancellationToken cancellationToken)
+        private async Task SyncBatchAsync(IEnumerable<Operation<TSourceDocument, TKey>> changes, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            if (!changes.Any())
+            {
+                return;
+            }
+
+            var resultBatch = new Dictionary<TKey, (OperationType Operation, TDestinationDocument Document)>();
+            foreach (var change in changes)
+            {
+                resultBatch[change.Key] = (change.Type, _map(change.Document));
+            }
+
+            var operationToDocuments = resultBatch.ToLookup(x => x.Value.Operation, x => x.Value.Document);
+            await _destinationRepository.BulkAsync(
+                addOrUpdate: operationToDocuments[OperationType.AddOrUpdate],
+                delete: operationToDocuments[OperationType.Delete],
+                cancellationToken: cancellationToken);
         }
 
-        private async Task<IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>>> GetStreamAsync(ReplicationState state, CancellationToken cancellationToken)
+        private async Task<IAsyncReplicationStream<TSourceDocument, TKey>> GetStreamAsync(ReplicationState state, CancellationToken cancellationToken)
         {
             var stream = state.ResumeToken == null ? null : await _sourceRepository.TryRestoreStreamAsync(_options.MaxSourceAwaitTime, _options.BatchSize, state.ResumeToken, cancellationToken);
 

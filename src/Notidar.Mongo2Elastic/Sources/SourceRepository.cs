@@ -3,12 +3,16 @@ using MongoDB.Driver;
 
 namespace Notidar.Mongo2Elastic.Sources
 {
-    public class SourceRepository<TSourceDocument> : ISourceRepository<TSourceDocument> where TSourceDocument : class
+    public class SourceRepository<TSourceDocument, TKey> : ISourceRepository<TSourceDocument, TKey> where TSourceDocument : class
     {
         private readonly IMongoCollection<TSourceDocument> _documentCollection;
-        public SourceRepository(IMongoCollection<TSourceDocument> documentCollection)
+        private readonly Func<TSourceDocument, TKey> _getKey;
+        public SourceRepository(
+            IMongoCollection<TSourceDocument> documentCollection,
+            Func<TSourceDocument, TKey> getKey)
         {
             _documentCollection = documentCollection;
+            _getKey = getKey;
         }
 
         public async Task<IAsyncEnumerable<IEnumerable<TSourceDocument>>> GetAllAsync(int batchSize, CancellationToken cancellationToken = default)
@@ -24,9 +28,9 @@ namespace Notidar.Mongo2Elastic.Sources
             return cursor.ToAsyncEnumerable(cancellationToken);
         }
 
-        public async Task<IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>>> GetStreamAsync(TimeSpan maxAwaitTime, int batchSize, CancellationToken cancellationToken = default)
+        public async Task<IAsyncReplicationStream<TSourceDocument, TKey>> GetStreamAsync(TimeSpan maxAwaitTime, int batchSize, CancellationToken cancellationToken = default)
         {
-            return await _documentCollection.WatchAsync(
+            var streamCursor = await _documentCollection.WatchAsync(
                 options: new ChangeStreamOptions
                 {
                     MaxAwaitTime = maxAwaitTime,
@@ -35,21 +39,24 @@ namespace Notidar.Mongo2Elastic.Sources
                     BatchSize = batchSize
                 },
                 cancellationToken: cancellationToken);
+
+            return new MongoAsyncReplicationStream<TSourceDocument, TKey>(streamCursor, _getKey);
         }
 
-        public async Task<IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>>?> TryRestoreStreamAsync(TimeSpan maxAwaitTime, int batchSize, BsonDocument resumeToken, CancellationToken cancellationToken = default)
+        public async Task<IAsyncReplicationStream<TSourceDocument, TKey>> TryRestoreStreamAsync(TimeSpan maxAwaitTime, int batchSize, string resumeToken, CancellationToken cancellationToken = default)
         {
             try
             {
-                return await _documentCollection.WatchAsync(
+                var streamCursor = await _documentCollection.WatchAsync(
                     options: new ChangeStreamOptions
                     {
                         MaxAwaitTime = maxAwaitTime,
                         FullDocument = ChangeStreamFullDocumentOption.UpdateLookup,
-                        StartAfter = resumeToken,
+                        StartAfter = new BsonDocument("_data", resumeToken),
                         BatchSize = batchSize
                     },
                     cancellationToken: cancellationToken);
+                return new MongoAsyncReplicationStream<TSourceDocument, TKey>(streamCursor, _getKey);
             }
             catch
             {

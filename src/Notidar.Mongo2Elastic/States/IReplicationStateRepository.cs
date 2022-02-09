@@ -19,7 +19,7 @@ namespace Notidar.Mongo2Elastic.States
             string replicationName,
             Guid replicatorId,
             DateTime lockExpirationDateUtc,
-            BsonDocument? resumeToken = null,
+            string? resumeToken = null,
             CancellationToken cancellationToken = default);
     }
 }
