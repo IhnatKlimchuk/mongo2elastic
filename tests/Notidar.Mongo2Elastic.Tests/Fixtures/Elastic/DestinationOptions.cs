@@ -1,4 +1,4 @@
-﻿namespace Notidar.Mongo2Elastic
+﻿namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elastic
 {
     public class DestinationOptions
     {
