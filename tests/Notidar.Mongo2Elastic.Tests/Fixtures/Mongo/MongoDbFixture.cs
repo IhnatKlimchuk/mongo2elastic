@@ -51,6 +51,15 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
             return PersonCollection.DeleteManyAsync(Builders<Person>.Filter.Empty, cancellationToken);
         }
 
+        public Task ResetReplicationStateAsync(string replicationKey, CancellationToken cancellationToken = default)
+        {
+            return ReplicationStateCollection.ReplaceOneAsync(
+                filter: Builders<ReplicationState>.Filter.Eq(x => x.ReplicationKey, replicationKey),
+                replacement: new ReplicationState { ReplicationKey = replicationKey },
+                options: new ReplaceOptions { IsUpsert = true },
+                cancellationToken: cancellationToken);
+        }
+
         public void Dispose()
         {
             _serviceProvider.Dispose();

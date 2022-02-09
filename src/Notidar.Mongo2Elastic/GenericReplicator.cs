@@ -83,6 +83,11 @@ namespace Notidar.Mongo2Elastic
                     // nothing
                 }
             }
+
+            await _replicationStateRepository.TryUnlockStateAsync(
+                replicationName: _options.ReplicationName,
+                replicatorId: _replicatorId,
+                cancellationToken: default);
         }
 
         private async Task RefreshStateAsync(ReplicationState state, CancellationTokenSource cancellationTokenSource, CancellationToken cancellationToken)
@@ -159,11 +164,6 @@ namespace Notidar.Mongo2Elastic
                     await _destinationRepository.BulkAsync(batch.Select(_map), Enumerable.Empty<TDestinationDocument>(), cancellationToken);
                 }
             }
-        }
-
-        public void Dispose()
-        {
-            //TO DO remove lock and gracefull stop
         }
     }
 }

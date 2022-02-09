@@ -5,6 +5,8 @@ using Microsoft.Extensions.Options;
 using Nest;
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elastic
 {
@@ -39,6 +41,28 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elastic
                 .RequestTimeout(TimeSpan.FromSeconds(30))
                 .MaxRetryTimeout(TimeSpan.FromSeconds(60));
             Client = new ElasticClient(config);
+        }
+
+        public async Task DeleteAllPersonsAsync(CancellationToken cancellationToken = default)
+        {
+            var response = await Client.DeleteByQueryAsync<Person>(del => del
+                .Conflicts(Conflicts.Proceed)
+                .Query(q => q.QueryString(qs => qs.Query("*"))), cancellationToken);
+            if (!response.IsValid)
+            {
+                throw new InvalidOperationException("Failed to delete all persons from index.");
+            }
+        }
+
+        public async Task<Person> GetPersonOrDefaultAsync(Guid personId, CancellationToken cancellationToken = default)
+        {
+            var response = await Client.GetAsync<Person>(personId, ct: cancellationToken);
+            if (!response.IsValid && response.ApiCall.HttpStatusCode != 404)
+            {
+                throw new InvalidOperationException("Failed to get person by id", response.OriginalException);
+            }
+
+            return response.Source;
         }
 
         public void Dispose()
