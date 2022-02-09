@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace Notidar.Mongo2Elastic.Replication
+namespace Notidar.Mongo2Elastic.States
 {
     public class MongoReplicationStateRepository : IReplicationStateRepository
     {
@@ -13,7 +13,7 @@ namespace Notidar.Mongo2Elastic.Replication
         }
 
         public Task<ReplicationState?> TryLockStateAsync(
-            string replicationKey,
+            string replicationName,
             Guid replicatorId,
             DateTime lockExpirationDateUtc,
             CancellationToken cancellationToken = default)
@@ -22,7 +22,7 @@ namespace Notidar.Mongo2Elastic.Replication
             return _stateCollection
                 .FindOneAndUpdateAsync(
                     filter: Builders<ReplicationState>.Filter.And(
-                        Builders<ReplicationState>.Filter.Eq(document => document.ReplicationKey, replicationKey),
+                        Builders<ReplicationState>.Filter.Eq(document => document.ReplicationKey, replicationName),
                         Builders<ReplicationState>.Filter.Or(
                             Builders<ReplicationState>.Filter.Eq(document => document.LockExpirationDateUtc, BsonNull.Value.ToNullableUniversalTime()),
                             Builders<ReplicationState>.Filter.Lte(document => document.LockExpirationDateUtc, utcNow),
@@ -37,7 +37,7 @@ namespace Notidar.Mongo2Elastic.Replication
         }
 
         public Task<ReplicationState?> TryUpdateStateAsync(
-            string replicationKey,
+            string replicationName,
             Guid replicatorId,
             DateTime lockExpirationDateUtc,
             BsonDocument? resumeToken = null,
@@ -46,7 +46,7 @@ namespace Notidar.Mongo2Elastic.Replication
             return _stateCollection
                 .FindOneAndUpdateAsync(
                     filter: Builders<ReplicationState>.Filter.And(
-                        Builders<ReplicationState>.Filter.Eq(document => document.ReplicationKey, replicationKey),
+                        Builders<ReplicationState>.Filter.Eq(document => document.ReplicationKey, replicationName),
                         Builders<ReplicationState>.Filter.Eq(document => document.ReplicatorId, replicatorId)),
                     update: Builders<ReplicationState>.Update.Combine(
                         Builders<ReplicationState>.Update.Set(document => document.LockExpirationDateUtc, lockExpirationDateUtc),
