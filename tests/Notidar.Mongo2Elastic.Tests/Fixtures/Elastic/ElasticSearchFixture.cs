@@ -65,6 +65,17 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elastic
             return response.Source;
         }
 
+        public async Task<long> CountPersonsAsync(CancellationToken cancellationToken = default)
+        {
+            var response = await Client.CountAsync<Person>(ct: cancellationToken);
+            if (!response.IsValid)
+            {
+                throw new InvalidOperationException("Failed to count persons", response.OriginalException);
+            }
+
+            return response.Count;
+        }
+
         public void Dispose()
         {
             _serviceProvider.Dispose();
