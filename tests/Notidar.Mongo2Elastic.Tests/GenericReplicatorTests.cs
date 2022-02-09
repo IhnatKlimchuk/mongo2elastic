@@ -41,13 +41,12 @@ namespace Notidar.Mongo2Elastic.Tests
                 new MongoReplicationStateRepository(_mongoDbFixture.ReplicationStateCollection),
                 new DestinationRepository<Fixtures.Elastic.Person>(_elasticSearchFixture.Client, "persons"),
                 new SourceRepository<Fixtures.Mongo.Person>(_mongoDbFixture.PersonCollection),
-                (x) => new Fixtures.Elastic.Person { Id = x.Id },
+                x => new Fixtures.Elastic.Person { Id = x.Id },
                 replicatorOptions.Value);
-
         }
 
         [Fact]
-        public async Task GeneralTest()
+        public async Task GenericReplicator_ReplicateAlreadExistingDocuments_Success()
         {
             await _replicator.ExecuteAsync();
         }

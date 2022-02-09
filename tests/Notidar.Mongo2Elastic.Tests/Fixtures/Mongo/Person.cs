@@ -12,7 +12,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
         public string UserName { get; set; }
         public string Email { get; set; }
 
-        public static IEnumerable<Person> Generate(int count = 10)
+        public static ICollection<Person> Generate(int count = 10)
         {
             var faker = new Faker<Person>()
                 .RuleFor(x => x.Id, f => Guid.NewGuid())

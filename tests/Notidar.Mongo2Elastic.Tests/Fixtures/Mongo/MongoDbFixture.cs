@@ -4,7 +4,10 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Notidar.Mongo2Elastic.States;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
 {
@@ -34,6 +37,18 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
             Database = Client.GetDatabase(sourceOptions.Value.MongoDatabase);
             PersonCollection = Database.GetCollection<Person>("persons");
             ReplicationStateCollection = Database.GetCollection<ReplicationState>("replications");
+        }
+
+        public async Task<ICollection<Person>> AddNewPersonsAsync(int count = 10, CancellationToken cancellationToken = default)
+        {
+            var personsToAdd = Person.Generate(count);
+            await PersonCollection.InsertManyAsync(personsToAdd, cancellationToken: cancellationToken);
+            return personsToAdd;
+        }
+
+        public Task DeleteAllPersonsAsync(CancellationToken cancellationToken = default)
+        {
+            return PersonCollection.DeleteManyAsync(Builders<Person>.Filter.Empty, cancellationToken);
         }
 
         public void Dispose()

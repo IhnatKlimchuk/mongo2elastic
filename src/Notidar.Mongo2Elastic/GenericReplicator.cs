@@ -151,7 +151,6 @@ namespace Notidar.Mongo2Elastic
 
         private async Task FullSyncAsync(CancellationToken cancellationToken)
         {
-            //var amountToTransfer = await _sourceRepository.CountAsync(cancellationToken: cancellationToken);
             var batchEnumerator = await _sourceRepository.GetAllAsync(_options.BatchSize, cancellationToken: cancellationToken);
             await foreach (var batch in batchEnumerator)
             {
@@ -160,6 +159,11 @@ namespace Notidar.Mongo2Elastic
                     await _destinationRepository.BulkAsync(batch.Select(_map), Enumerable.Empty<TDestinationDocument>(), cancellationToken);
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            //TO DO remove lock and gracefull stop
         }
     }
 }
