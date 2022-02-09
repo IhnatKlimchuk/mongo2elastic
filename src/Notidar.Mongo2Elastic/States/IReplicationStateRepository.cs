@@ -10,6 +10,11 @@ namespace Notidar.Mongo2Elastic.States
             DateTime lockExpirationDateUtc,
             CancellationToken cancellationToken = default);
 
+        Task TryUnlockStateAsync(
+            string replicationName,
+            Guid replicatorId,
+            CancellationToken cancellationToken = default);
+
         Task<ReplicationState?> TryUpdateStateAsync(
             string replicationName,
             Guid replicatorId,

@@ -36,6 +36,25 @@ namespace Notidar.Mongo2Elastic.States
                     cancellationToken: cancellationToken);
         }
 
+        public Task TryUnlockStateAsync(
+            string replicationName,
+            Guid replicatorId,
+            CancellationToken cancellationToken = default)
+        {
+            var utcNow = DateTime.UtcNow;
+            return _stateCollection
+                .FindOneAndUpdateAsync(
+                    filter: Builders<ReplicationState>.Filter.And(
+                        Builders<ReplicationState>.Filter.Eq(document => document.ReplicationKey, replicationName),
+                        Builders<ReplicationState>.Filter.Eq(document => document.ReplicatorId, replicatorId)),
+                    update: Builders<ReplicationState>.Update.Combine(
+                        Builders<ReplicationState>.Update.Set(document => document.ReplicatorId, BsonNull.Value.AsNullableGuid),
+                        Builders<ReplicationState>.Update.Set(document => document.LockExpirationDateUtc, BsonNull.Value.ToNullableUniversalTime()),
+                        Builders<ReplicationState>.Update.Set(document => document.UpdatedAtUtc, DateTime.UtcNow)),
+                    options: new FindOneAndUpdateOptions<ReplicationState> { IsUpsert = false, ReturnDocument = ReturnDocument.After },
+                    cancellationToken: cancellationToken);
+        }
+
         public Task<ReplicationState?> TryUpdateStateAsync(
             string replicationName,
             Guid replicatorId,
