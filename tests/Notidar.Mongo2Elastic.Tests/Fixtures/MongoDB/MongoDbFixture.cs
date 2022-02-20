@@ -6,8 +6,10 @@ using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models.CompositeIdPerson;
 
 namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 {
@@ -18,6 +20,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
         public IMongoClient Client { get; private set; }
         public IMongoDatabase Database { get; private set; }
         public IMongoCollection<Person> PersonCollection { get; private set; }
+        public IMongoCollection<CompositeIdPerson> CompositeIdPersonCollection { get; private set; }
         public IMongoCollection<ReplicationState> ReplicationStateCollection { get; private set; }
 
         public MongoDbFixture()
@@ -36,6 +39,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
             Client = new MongoClient(MongoClientSettings.FromConnectionString(sourceOptions.Value.MongoConnectionString));
             Database = Client.GetDatabase(sourceOptions.Value.MongoDatabase);
             PersonCollection = Database.GetCollection<Person>("persons");
+            CompositeIdPersonCollection = Database.GetCollection<CompositeIdPerson>("composite-id-persons");
             ReplicationStateCollection = Database.GetCollection<ReplicationState>("replications");
         }
 
@@ -44,6 +48,41 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
             var personsToAdd = Person.Generate(count);
             await PersonCollection.InsertManyAsync(personsToAdd, cancellationToken: cancellationToken);
             return personsToAdd;
+        }
+
+        public async Task<Person> UpdatePersonAsync(Guid personId, CancellationToken cancellationToken = default)
+        {
+            var updatedPersons = Person.Generate(1);
+            var updatedPerson = updatedPersons.Single();
+            updatedPerson.Id = personId;
+            var result = await PersonCollection.ReplaceOneAsync(
+                Builders<Person>.Filter.Eq(x => x.Id, personId), updatedPerson, cancellationToken: cancellationToken);
+            if (result.ModifiedCount != 1)
+            {
+                throw new InvalidOperationException("Failed to update person");
+            }
+            return updatedPerson;
+        }
+
+        public async Task<ICollection<CompositeIdPerson>> AddNewCompositeIdPersonsAsync(int count = 10, CancellationToken cancellationToken = default)
+        {
+            var personsToAdd = CompositeIdPerson.Generate(count);
+            await CompositeIdPersonCollection.InsertManyAsync(personsToAdd, cancellationToken: cancellationToken);
+            return personsToAdd;
+        }
+
+        public async Task<CompositeIdPerson> UpdateCompositeIdPersonAsync(PersonCompositeId personId, CancellationToken cancellationToken = default)
+        {
+            var updatedPersons = CompositeIdPerson.Generate(1);
+            var updatedPerson = updatedPersons.Single();
+            updatedPerson.Id = personId;
+            var result = await CompositeIdPersonCollection.ReplaceOneAsync(
+                Builders<CompositeIdPerson>.Filter.Eq(x => x.Id, personId), updatedPerson, cancellationToken: cancellationToken);
+            if (result.ModifiedCount != 1)
+            {
+                throw new InvalidOperationException("Failed to update person");
+            }
+            return updatedPerson;
         }
 
         public async Task DeletePersonAsync(Guid personId, CancellationToken cancellationToken = default)
@@ -55,9 +94,23 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
             }
         }
 
+        public async Task DeleteCompositeIdPersonAsync(PersonCompositeId personId, CancellationToken cancellationToken = default)
+        {
+            var result = await CompositeIdPersonCollection.DeleteOneAsync(Builders<CompositeIdPerson>.Filter.Eq(x => x.Id, personId), cancellationToken);
+            if (result.DeletedCount != 1)
+            {
+                throw new InvalidOperationException("Failed to delete person");
+            }
+        }
+
         public Task DeleteAllPersonsAsync(CancellationToken cancellationToken = default)
         {
             return PersonCollection.DeleteManyAsync(Builders<Person>.Filter.Empty, cancellationToken);
+        }
+
+        public Task DeleteAllCompositeIdPersonsAsync(CancellationToken cancellationToken = default)
+        {
+            return CompositeIdPersonCollection.DeleteManyAsync(Builders<CompositeIdPerson>.Filter.Empty, cancellationToken);
         }
 
         public Task ResetReplicationStateAsync(string replicationId, CancellationToken cancellationToken = default)

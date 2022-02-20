@@ -55,7 +55,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
             }
         }
 
-        public async Task<Person> GetPersonOrDefaultAsync(Guid personId, CancellationToken cancellationToken = default)
+        public async Task<Person> GetPersonOrDefaultAsync(string personId, CancellationToken cancellationToken = default)
         {
             var response = await Client.GetAsync<Person>(personId, ct: cancellationToken);
             if (!response.IsValid && response.ApiCall.HttpStatusCode != 404)

@@ -15,7 +15,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models
         public static ICollection<CompositeIdPerson> Generate(int count = 10)
         {
             var faker = new Faker<CompositeIdPerson>()
-                .RuleFor(x => x.Id, f => new PersonCompositeId { Id = Guid.NewGuid(), CountryCode = f.Address.CountryCode() })
+                .RuleFor(x => x.Id, f => new PersonCompositeId { Guid = Guid.NewGuid(), CountryCode = f.Address.CountryCode() })
                 .RuleFor(u => u.FirstName, (f, u) => f.Name.FirstName())
                 .RuleFor(u => u.LastName, (f, u) => f.Name.LastName())
                 .RuleFor(u => u.UserName, (f, u) => f.Internet.UserName(u.FirstName, u.LastName))
@@ -24,9 +24,9 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models
             return faker.Generate(count);
         }
 
-        public class PersonCompositeId
+        public record PersonCompositeId
         {
-            public Guid Id { get; set; }
+            public Guid Guid { get; set; }
             public string CountryCode { get; set; }
         }
     }

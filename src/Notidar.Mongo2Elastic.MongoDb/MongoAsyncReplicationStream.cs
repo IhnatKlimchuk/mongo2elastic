@@ -3,16 +3,15 @@ using MongoDB.Driver;
 
 namespace Notidar.Mongo2Elastic.MongoDB
 {
-    public class MongoAsyncReplicationStream<TSourceDocument, TKey> : IAsyncReplicationStream<TSourceDocument, TKey> where TSourceDocument : class
+    public class MongoAsyncReplicationStream<TSourceDocument> : IAsyncReplicationStream<TSourceDocument> where TSourceDocument : class
     {
         private IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>> _changeStreamCursor;
-        private Func<TSourceDocument, TKey> _getKey;
+        private Func<object, object> _getKey;
         public MongoAsyncReplicationStream(
-            IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>> changeStreamCursor,
-            Func<TSourceDocument, TKey> getKey)
+            IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>> changeStreamCursor)
         {
             _changeStreamCursor = changeStreamCursor;
-            _getKey = getKey;
+            _getKey = BsonClassMap.LookupClassMap(typeof(TSourceDocument)).IdMemberMap.Getter;
         }
 
         public void Dispose()
@@ -20,14 +19,14 @@ namespace Notidar.Mongo2Elastic.MongoDB
             _changeStreamCursor.Dispose();
         }
 
-        public async IAsyncEnumerator<IEnumerable<Operation<TSourceDocument, TKey>>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public async IAsyncEnumerator<IEnumerable<Operation<TSourceDocument>>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             while (await _changeStreamCursor.MoveNextAsync(cancellationToken))
             {
                 yield return _changeStreamCursor.Current.Select(x =>
                 {
                     var document = x.FullDocument ?? BsonSerializer.Deserialize<TSourceDocument>(x.DocumentKey);
-                    return new Operation<TSourceDocument, TKey>
+                    return new Operation<TSourceDocument>
                     {
                         Type = x.OperationType switch
                         {

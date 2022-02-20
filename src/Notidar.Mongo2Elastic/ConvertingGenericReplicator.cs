@@ -3,13 +3,13 @@ using Notidar.Mongo2Elastic.MongoDB;
 
 namespace Notidar.Mongo2Elastic
 {
-    public class ConvertingGenericReplicator<TSourceDocument, TKey, TDestinationDocument> : IReplicator
+    public class ConvertingGenericReplicator<TSourceDocument, TDestinationDocument> : IReplicator
         where TSourceDocument : class
         where TDestinationDocument : class
     {
         private readonly IReplicationStateRepository _replicationStateRepository;
         private readonly IDestinationRepository<TDestinationDocument> _destinationRepository;
-        private readonly ISourceRepository<TSourceDocument, TKey> _sourceRepository;
+        private readonly ISourceRepository<TSourceDocument> _sourceRepository;
         private readonly Func<TSourceDocument, TDestinationDocument> _map;
         private readonly ReplicatorOptions _options;
 
@@ -18,7 +18,7 @@ namespace Notidar.Mongo2Elastic
         public ConvertingGenericReplicator(
             IReplicationStateRepository replicationStateRepository,
             IDestinationRepository<TDestinationDocument> destinationRepository,
-            ISourceRepository<TSourceDocument, TKey> sourceRepository,
+            ISourceRepository<TSourceDocument> sourceRepository,
             Func<TSourceDocument, TDestinationDocument> map,
             ReplicatorOptions options)
         {
@@ -138,14 +138,14 @@ namespace Notidar.Mongo2Elastic
             }
         }
 
-        private async Task SyncBatchAsync(ReplicationState state, IEnumerable<Operation<TSourceDocument, TKey>> changes, CancellationToken cancellationToken)
+        private async Task SyncBatchAsync(ReplicationState state, IEnumerable<Operation<TSourceDocument>> changes, CancellationToken cancellationToken)
         {
             if (!changes.Any())
             {
                 return;
             }
 
-            var resultBatch = new Dictionary<TKey, (OperationType Operation, TDestinationDocument Document)>();
+            var resultBatch = new Dictionary<object, (OperationType Operation, TDestinationDocument Document)>();
             foreach (var change in changes)
             {
                 resultBatch[change.Key] = (change.Type, _map(change.Document));
@@ -159,7 +159,7 @@ namespace Notidar.Mongo2Elastic
                 cancellationToken: cancellationToken);
         }
 
-        private async Task<IAsyncReplicationStream<TSourceDocument, TKey>> GetStreamAsync(ReplicationState state, CancellationToken cancellationToken)
+        private async Task<IAsyncReplicationStream<TSourceDocument>> GetStreamAsync(ReplicationState state, CancellationToken cancellationToken)
         {
             return await _sourceRepository.TryGetStreamAsync(_options.BatchSize, state.ResumeToken, cancellationToken)
                 ?? await _sourceRepository.TryGetStreamAsync(_options.BatchSize, resumeToken: state.ResumeToken = null, cancellationToken)
