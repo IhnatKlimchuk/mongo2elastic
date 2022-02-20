@@ -1,4 +1,4 @@
-﻿namespace Notidar.Mongo2Elastic
+﻿namespace Notidar.Mongo2Elastic.MongoDB
 {
     public interface ISourceRepository<TDocument, TKey> where TDocument : class
     {

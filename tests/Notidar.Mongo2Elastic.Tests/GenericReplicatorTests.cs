@@ -1,9 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Notidar.Mongo2Elastic.Destinations;
-using Notidar.Mongo2Elastic.Sources;
-using Notidar.Mongo2Elastic.States;
+using Notidar.Mongo2Elastic.Elasticsearch;
+using Notidar.Mongo2Elastic.MongoDB;
 using Notidar.Mongo2Elastic.Tests.Fixtures;
 using Notidar.Mongo2Elastic.Tests.Fixtures.Elastic;
 using Notidar.Mongo2Elastic.Tests.Fixtures.Mongo;
@@ -42,9 +41,9 @@ namespace Notidar.Mongo2Elastic.Tests
             _options = _serviceProvider.GetRequiredService<IOptions<ReplicatorOptions>>().Value;
 
             _replicator = new GenericReplicator<Fixtures.Mongo.Person, Guid, Fixtures.Elastic.Person>(
-                new MongoReplicationStateRepository(_mongoDbFixture.ReplicationStateCollection),
-                new DestinationRepository<Fixtures.Elastic.Person>(_elasticSearchFixture.Client, "persons"),
-                new SourceRepository<Fixtures.Mongo.Person, Guid>(_mongoDbFixture.PersonCollection, x => x.Id),
+                new MongoReplicationStateRepository(_mongoDbFixture.ReplicationStateCollection, "persons"),
+                new DestinationRepository<Fixtures.Elastic.Person>(_elasticSearchFixture.Client),
+                new SourceRepository<Fixtures.Mongo.Person, Guid>(_mongoDbFixture.PersonCollection, TimeSpan.FromSeconds(1), x => x.Id),
                 x => new Fixtures.Elastic.Person { Id = x.Id },
                 _options);
         }
@@ -52,7 +51,7 @@ namespace Notidar.Mongo2Elastic.Tests
         [Fact]
         public async Task GenericReplicator_ReplicateAlreadExistingDocument_Success()
         {
-            await _mongoDbFixture.ResetReplicationStateAsync(_options.ReplicationName);
+            await _mongoDbFixture.ResetReplicationStateAsync("persons");
             await _mongoDbFixture.DeleteAllPersonsAsync();
             await _elasticSearchFixture.DeleteAllPersonsAsync();
             var mongoPersons = await _mongoDbFixture.AddNewPersonsAsync(1);
@@ -73,7 +72,7 @@ namespace Notidar.Mongo2Elastic.Tests
         [Fact]
         public async Task GenericReplicator_ReplicateAlreadExistingDocuments_Success()
         {
-            await _mongoDbFixture.ResetReplicationStateAsync(_options.ReplicationName);
+            await _mongoDbFixture.ResetReplicationStateAsync("persons");
             await _mongoDbFixture.DeleteAllPersonsAsync();
             await _elasticSearchFixture.DeleteAllPersonsAsync();
             var mongoPersons = await _mongoDbFixture.AddNewPersonsAsync(10);
@@ -93,7 +92,7 @@ namespace Notidar.Mongo2Elastic.Tests
         [Fact]
         public async Task GenericReplicator_ReplicateAddedDocument_Success()
         {
-            await _mongoDbFixture.ResetReplicationStateAsync(_options.ReplicationName);
+            await _mongoDbFixture.ResetReplicationStateAsync("persons");
             await _mongoDbFixture.DeleteAllPersonsAsync();
             await _elasticSearchFixture.DeleteAllPersonsAsync();
 
@@ -102,7 +101,7 @@ namespace Notidar.Mongo2Elastic.Tests
 
             await Assertion.Eventually(async () =>
             {
-                var state = await _mongoDbFixture.GetReplicationStateOrDefaultAsync(_options.ReplicationName);
+                var state = await _mongoDbFixture.GetReplicationStateOrDefaultAsync("persons");
                 Assert.NotNull(state?.ResumeToken);
             });
 
@@ -122,7 +121,7 @@ namespace Notidar.Mongo2Elastic.Tests
         [Fact]
         public async Task GenericReplicator_ReplicateDeletedDocument_Success()
         {
-            await _mongoDbFixture.ResetReplicationStateAsync(_options.ReplicationName);
+            await _mongoDbFixture.ResetReplicationStateAsync("persons");
             await _mongoDbFixture.DeleteAllPersonsAsync();
             await _elasticSearchFixture.DeleteAllPersonsAsync();
             var mongoPersons = await _mongoDbFixture.AddNewPersonsAsync(1);

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using Notidar.Mongo2Elastic.States;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -60,19 +59,19 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
             return PersonCollection.DeleteManyAsync(Builders<Person>.Filter.Empty, cancellationToken);
         }
 
-        public Task ResetReplicationStateAsync(string replicationKey, CancellationToken cancellationToken = default)
+        public Task ResetReplicationStateAsync(string replicationId, CancellationToken cancellationToken = default)
         {
             return ReplicationStateCollection.ReplaceOneAsync(
-                filter: Builders<ReplicationState>.Filter.Eq(x => x.ReplicationKey, replicationKey),
-                replacement: new ReplicationState { ReplicationKey = replicationKey },
+                filter: Builders<ReplicationState>.Filter.Eq(x => x.Id, replicationId),
+                replacement: new ReplicationState { Id = replicationId },
                 options: new ReplaceOptions { IsUpsert = true },
                 cancellationToken: cancellationToken);
         }
 
-        public async Task<ReplicationState?> GetReplicationStateOrDefaultAsync(string replicationKey, CancellationToken cancellationToken = default)
+        public async Task<ReplicationState?> GetReplicationStateOrDefaultAsync(string replicationId, CancellationToken cancellationToken = default)
         {
             var cursor = await ReplicationStateCollection.FindAsync(
-                filter: Builders<ReplicationState>.Filter.Eq(x => x.ReplicationKey, replicationKey),
+                filter: Builders<ReplicationState>.Filter.Eq(x => x.Id, replicationId),
                 options: default,
                 cancellationToken: cancellationToken);
 

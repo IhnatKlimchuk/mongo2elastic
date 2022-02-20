@@ -33,8 +33,8 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elastic
             var pool = new SingleNodeConnectionPool(url);
             var config = new ConnectionSettings(pool)
                 .DefaultMappingFor<Person>(p => p
-                .IndexName("persons")
-                .IdProperty(x => x.Id))
+                    .IndexName("persons")
+                    .IdProperty(x => x.Id))
                 .EnableDebugMode()
                 .PrettyJson()
                 .MaximumRetries(3)

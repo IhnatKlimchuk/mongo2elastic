@@ -27,6 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Notidar.Mongo2Elastic.Elasticsearch\Notidar.Mongo2Elastic.Elasticsearch.csproj" />
+    <ProjectReference Include="..\..\src\Notidar.Mongo2Elastic.MongoDb\Notidar.Mongo2Elastic.MongoDB.csproj" />
     <ProjectReference Include="..\..\src\Notidar.Mongo2Elastic\Notidar.Mongo2Elastic.csproj" />
   </ItemGroup>
 

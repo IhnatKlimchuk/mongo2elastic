@@ -1,7 +1,8 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 using System.Runtime.CompilerServices;
 
-namespace Notidar.Mongo2Elastic
+namespace Notidar.Mongo2Elastic.MongoDB
 {
     public static class MongoDriverExtenstions
     {

@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
-namespace Notidar.Mongo2Elastic.Sources
+namespace Notidar.Mongo2Elastic.MongoDB
 {
     public class MongoAsyncReplicationStream<TSourceDocument, TKey> : IAsyncReplicationStream<TSourceDocument, TKey> where TSourceDocument : class
     {
