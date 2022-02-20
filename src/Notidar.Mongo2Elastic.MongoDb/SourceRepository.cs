@@ -3,23 +3,23 @@ using MongoDB.Driver;
 
 namespace Notidar.Mongo2Elastic.MongoDB
 {
-    public class SourceRepository<TSourceDocument> : ISourceRepository<TSourceDocument> where TSourceDocument : class
+    public class SourceRepository<TDocument> : ISourceRepository<TDocument> where TDocument : class
     {
-        private readonly IMongoCollection<TSourceDocument> _documentCollection;
+        private readonly IMongoCollection<TDocument> _documentCollection;
         private readonly TimeSpan _maxAwaitTime;
         public SourceRepository(
-            IMongoCollection<TSourceDocument> documentCollection,
+            IMongoCollection<TDocument> documentCollection,
             TimeSpan maxAwaitTime)
         {
             _documentCollection = documentCollection;
             _maxAwaitTime = maxAwaitTime;
         }
 
-        public async Task<IAsyncEnumerable<IEnumerable<TSourceDocument>>> GetDocumentsAsync(int batchSize, CancellationToken cancellationToken = default)
+        public async Task<IAsyncEnumerable<IEnumerable<TDocument>>> GetDocumentsAsync(int batchSize, CancellationToken cancellationToken = default)
         {
             var cursor = await _documentCollection.FindAsync(
-                filter: Builders<TSourceDocument>.Filter.Empty,
-                options: new FindOptions<TSourceDocument>
+                filter: Builders<TDocument>.Filter.Empty,
+                options: new FindOptions<TDocument>
                 {
                     BatchSize = batchSize,
                 },
@@ -28,7 +28,7 @@ namespace Notidar.Mongo2Elastic.MongoDB
             return cursor.ToAsyncEnumerable(cancellationToken);
         }
 
-        public async Task<IAsyncReplicationStream<TSourceDocument>?> TryGetStreamAsync(int batchSize, string? resumeToken, CancellationToken cancellationToken = default)
+        public async Task<IAsyncReplicationStream<TDocument>?> TryGetStreamAsync(int batchSize, string? resumeToken, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -41,7 +41,7 @@ namespace Notidar.Mongo2Elastic.MongoDB
                         BatchSize = batchSize
                     },
                     cancellationToken: cancellationToken);
-                return new MongoAsyncReplicationStream<TSourceDocument>(streamCursor);
+                return new MongoAsyncReplicationStream<TDocument>(streamCursor);
             }
             catch
             {
