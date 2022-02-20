@@ -11,13 +11,13 @@ using System.Threading.Tasks;
 
 namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
 {
-    public class ElasticSearchFixture : IDisposable
+    public class ElasticsearchFixture : IDisposable
     {
         private readonly ServiceProvider _serviceProvider;
 
         public IElasticClient Client { get; private set; }
 
-        public ElasticSearchFixture()
+        public ElasticsearchFixture()
         {
             var configuration = new ConfigurationBuilder()
                   .SetBasePath(Directory.GetCurrentDirectory())
