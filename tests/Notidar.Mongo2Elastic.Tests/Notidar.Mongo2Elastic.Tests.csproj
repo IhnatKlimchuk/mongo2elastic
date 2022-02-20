@@ -38,4 +38,6 @@
     </None>
   </ItemGroup>
 
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="https://json.schemastore.org/azure-iot-edgeagent-deployment-1.1.json" /></VisualStudio></ProjectExtensions>
+
 </Project>

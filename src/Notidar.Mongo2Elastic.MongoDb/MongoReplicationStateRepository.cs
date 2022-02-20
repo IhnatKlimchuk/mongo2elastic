@@ -3,7 +3,7 @@ using MongoDB.Driver;
 
 namespace Notidar.Mongo2Elastic.MongoDB
 {
-    public class MongoReplicationStateRepository : IReplicationStateRepository
+    public class MongoReplicationStateRepository : IStateRepository
     {
         private readonly IMongoCollection<ReplicationState> _stateCollection;
         private readonly string _replicationId;

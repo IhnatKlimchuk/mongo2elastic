@@ -5,7 +5,7 @@ namespace Notidar.Mongo2Elastic.Elasticsearch
 {
     public class VersionedDestinationRepository<TDocument> : DestinationRepository<TDocument> where TDocument : class, IVersionedDocument
     {
-        public VersionedDestinationRepository(IElasticClient client, bool waitForRefresh = true) : base(client, waitForRefresh) { }
+        public VersionedDestinationRepository(IElasticClient client, DestinationRepositoryOptions options) : base(client, options) { }
 
         public override Task BulkUpdateAsync(IEnumerable<TDocument> addOrUpdate, IEnumerable<TDocument> delete, int version, CancellationToken cancellationToken = default)
         {
@@ -15,7 +15,7 @@ namespace Notidar.Mongo2Elastic.Elasticsearch
                 return x;
             });
 
-            return BulkUpdateAsync(versionEnrichedDocuments, delete, version, Refresh, cancellationToken);
+            return BulkUpdateAsync(versionEnrichedDocuments, delete, Options.Refresh, cancellationToken);
         }
 
         public override async Task PrepareForReplicationAsync(int version, CancellationToken cancellationToken = default)

@@ -2,9 +2,7 @@
 {
     public class ReplicatorOptions
     {
-        public TimeSpan StateUpdateDelay { get; init; }
-        public TimeSpan LockTimeout { get; init; }
-        public TimeSpan MaxSourceAwaitTime { get; init; }
-        public int BatchSize { get; init; }
+        public TimeSpan StateUpdateDelay { get; set; } = TimeSpan.FromSeconds(20);
+        public TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds(60);
     }
 }

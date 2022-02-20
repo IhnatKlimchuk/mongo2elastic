@@ -22,11 +22,11 @@ namespace Notidar.Mongo2Elastic.Tests.Features
         {
             var options = ServiceProvider.GetRequiredService<IOptions<ReplicatorOptions>>().Value;
 
-            _replicator = new ConvertingGenericReplicator<Fixtures.MongoDB.Models.CompositeIdPerson, Fixtures.Elasticsearch.Models.Person>(
+            _replicator = new Replicator<Fixtures.MongoDB.Models.CompositeIdPerson, Fixtures.Elasticsearch.Models.ElasticPerson>(
                 new MongoReplicationStateRepository(MongoDbFixture.ReplicationStateCollection, "composite-id-persons"),
-                new DestinationRepository<Fixtures.Elasticsearch.Models.Person>(ElasticsearchFixture.Client),
-                new SourceRepository<Fixtures.MongoDB.Models.CompositeIdPerson>(MongoDbFixture.CompositeIdPersonCollection, TimeSpan.FromSeconds(1)),
-                Fixtures.Elasticsearch.Models.Person.FromMongoCompositeIdPerson,
+                new DestinationRepository<Fixtures.Elasticsearch.Models.ElasticPerson>(ElasticsearchFixture.Client, new DestinationRepositoryOptions { }),
+                new SourceRepository<Fixtures.MongoDB.Models.CompositeIdPerson>(MongoDbFixture.CompositeIdPersonCollection, new SourceRepositoryOptions { }),
+                Fixtures.Elasticsearch.Models.ElasticPerson.FromMongoCompositeIdPerson,
                 options);
         }
 

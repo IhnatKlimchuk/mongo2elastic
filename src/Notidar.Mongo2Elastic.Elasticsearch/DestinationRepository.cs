@@ -6,19 +6,19 @@ namespace Notidar.Mongo2Elastic.Elasticsearch
     public class DestinationRepository<TDocument> : IDestinationRepository<TDocument> where TDocument : class
     {
         protected readonly IElasticClient Client;
-        protected readonly Refresh Refresh;
-        public DestinationRepository(IElasticClient client, bool waitForRefresh = true)
+        protected readonly DestinationRepositoryOptions Options;
+        public DestinationRepository(IElasticClient client, DestinationRepositoryOptions options)
         {
             Client = client ?? throw new ArgumentNullException(nameof(client));
-            Refresh = waitForRefresh ? Refresh.WaitFor : Refresh.False;
+            Options = options;
         }
 
         public virtual Task BulkUpdateAsync(IEnumerable<TDocument> addOrUpdate, IEnumerable<TDocument> delete, int version, CancellationToken cancellationToken = default)
         {
-            return BulkUpdateAsync(addOrUpdate, delete, version, Refresh, cancellationToken);
+            return BulkUpdateAsync(addOrUpdate, delete, Options.Refresh, cancellationToken);
         }
 
-        protected async Task BulkUpdateAsync(IEnumerable<TDocument> addOrUpdate, IEnumerable<TDocument> delete, int version, Refresh refresh, CancellationToken cancellationToken = default)
+        protected async Task BulkUpdateAsync(IEnumerable<TDocument> addOrUpdate, IEnumerable<TDocument> delete, Refresh refresh, CancellationToken cancellationToken = default)
         {
             var response = await Client.BulkAsync(
                 selector: b => b

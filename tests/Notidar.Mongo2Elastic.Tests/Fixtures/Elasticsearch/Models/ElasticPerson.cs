@@ -1,6 +1,9 @@
-﻿namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch.Models
+﻿using Notidar.Mongo2Elastic.Builder;
+using Notidar.Mongo2Elastic.Elasticsearch;
+
+namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch.Models
 {
-    public class Person
+    public class ElasticPerson
     {
         public string Id { get; set; }
         public string FirstName { get; set; }
@@ -8,9 +11,9 @@
         public string UserName { get; set; }
         public string Email { get; set; }
 
-        public static Person FromMongoPerson(MongoDB.Models.Person person)
+        public static ElasticPerson FromMongoPerson(MongoDB.Models.MongoPerson person)
         {
-            return new Person
+            return new ElasticPerson
             {
                 Id = person.Id.ToString(),
                 Email = person.Email,
@@ -20,9 +23,9 @@
             };
         }
 
-        public static Person FromMongoCompositeIdPerson(MongoDB.Models.CompositeIdPerson person)
+        public static ElasticPerson FromMongoCompositeIdPerson(MongoDB.Models.CompositeIdPerson person)
         {
-            return new Person
+            return new ElasticPerson
             {
                 Id = person.Id.ToString(),
                 Email = person.Email,

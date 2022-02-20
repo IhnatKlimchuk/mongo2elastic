@@ -5,8 +5,8 @@ namespace Notidar.Mongo2Elastic.MongoDB
 {
     public class MongoAsyncReplicationStream<TSourceDocument> : IAsyncReplicationStream<TSourceDocument> where TSourceDocument : class
     {
-        private IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>> _changeStreamCursor;
-        private Func<object, object> _getKey;
+        private readonly IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>> _changeStreamCursor;
+        private readonly Func<object, object> _getKey;
         public MongoAsyncReplicationStream(
             IChangeStreamCursor<ChangeStreamDocument<TSourceDocument>> changeStreamCursor)
         {
@@ -17,6 +17,7 @@ namespace Notidar.Mongo2Elastic.MongoDB
         public void Dispose()
         {
             _changeStreamCursor.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public async IAsyncEnumerator<IEnumerable<Operation<TSourceDocument>>> GetAsyncEnumerator(CancellationToken cancellationToken = default)

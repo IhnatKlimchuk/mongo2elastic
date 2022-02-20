@@ -14,7 +14,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models
                 t.MapIdField(c => c.Id);
             });
 
-            BsonClassMap.RegisterClassMap<Person>(t =>
+            BsonClassMap.RegisterClassMap<MongoPerson>(t =>
             {
                 t.AutoMap();
                 t.MapIdField(c => c.Id);

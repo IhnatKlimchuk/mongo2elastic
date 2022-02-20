@@ -1,13 +1,12 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Notidar.Mongo2Elastic.Elasticsearch;
-using Notidar.Mongo2Elastic.MongoDB;
+using Notidar.Mongo2Elastic.Builder;
+using Notidar.Mongo2Elastic.Elasticsearch.Builder;
+using Notidar.Mongo2Elastic.MongoDB.Builder;
 using Notidar.Mongo2Elastic.Tests.Fixtures;
 using Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch;
+using Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch.Models;
 using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB;
+using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models;
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,14 +20,20 @@ namespace Notidar.Mongo2Elastic.Tests.Features
 
         public GenericReplicatorTests(MongoDbFixture mongoDbFixture, ElasticsearchFixture elasticsearchFixture) : base(mongoDbFixture, elasticsearchFixture)
         {
-            var options = ServiceProvider.GetRequiredService<IOptions<ReplicatorOptions>>().Value;
-
-            _replicator = new ConvertingGenericReplicator<Fixtures.MongoDB.Models.Person, Fixtures.Elasticsearch.Models.Person>(
-                new MongoReplicationStateRepository(MongoDbFixture.ReplicationStateCollection, "persons"),
-                new DestinationRepository<Fixtures.Elasticsearch.Models.Person>(ElasticsearchFixture.Client),
-                new SourceRepository<Fixtures.MongoDB.Models.Person>(MongoDbFixture.PersonCollection, TimeSpan.FromSeconds(1)),
-                Fixtures.Elasticsearch.Models.Person.FromMongoPerson,
-                options);
+            _replicator = ReplicationBuilder
+                .For<MongoPerson, ElasticPerson>(ElasticPerson.FromMongoPerson, c => {
+                    c.StateUpdateDelay = TimeSpan.FromSeconds(1);
+                    c.LockTimeout = TimeSpan.FromSeconds(5);
+                })
+                .FromMongoDb(MongoDbFixture.PersonCollection, c => {
+                    c.MaxAwaitTime = TimeSpan.FromSeconds(1);
+                    c.BatchSize = 1000;
+                })
+                .ToElasticsearchWithReset(ElasticsearchFixture.Client, c => {
+                    c.Refresh = global::Elasticsearch.Net.Refresh.True;
+                })
+                .WithMongoDbState(MongoDbFixture.ReplicationStateCollection, "persons")
+                .Build();
         }
 
         [Fact]

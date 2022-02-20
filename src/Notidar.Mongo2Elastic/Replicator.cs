@@ -3,11 +3,11 @@ using Notidar.Mongo2Elastic.MongoDB;
 
 namespace Notidar.Mongo2Elastic
 {
-    public class ConvertingGenericReplicator<TSourceDocument, TDestinationDocument> : IReplicator
+    public class Replicator<TSourceDocument, TDestinationDocument> : IReplicator
         where TSourceDocument : class
         where TDestinationDocument : class
     {
-        private readonly IReplicationStateRepository _replicationStateRepository;
+        private readonly IStateRepository _replicationStateRepository;
         private readonly IDestinationRepository<TDestinationDocument> _destinationRepository;
         private readonly ISourceRepository<TSourceDocument> _sourceRepository;
         private readonly Func<TSourceDocument, TDestinationDocument> _map;
@@ -15,8 +15,8 @@ namespace Notidar.Mongo2Elastic
 
         private readonly Guid _replicatorId;
 
-        public ConvertingGenericReplicator(
-            IReplicationStateRepository replicationStateRepository,
+        public Replicator(
+            IStateRepository replicationStateRepository,
             IDestinationRepository<TDestinationDocument> destinationRepository,
             ISourceRepository<TSourceDocument> sourceRepository,
             Func<TSourceDocument, TDestinationDocument> map,
@@ -161,14 +161,14 @@ namespace Notidar.Mongo2Elastic
 
         private async Task<IAsyncReplicationStream<TSourceDocument>> GetStreamAsync(ReplicationState state, CancellationToken cancellationToken)
         {
-            return await _sourceRepository.TryGetStreamAsync(_options.BatchSize, state.ResumeToken, cancellationToken)
-                ?? await _sourceRepository.TryGetStreamAsync(_options.BatchSize, resumeToken: state.ResumeToken = null, cancellationToken)
+            return await _sourceRepository.TryGetStreamAsync(state.ResumeToken, cancellationToken)
+                ?? await _sourceRepository.TryGetStreamAsync(resumeToken: state.ResumeToken = null, cancellationToken)
                 ?? throw new InvalidOperationException();
         }
 
         private async Task FullSyncAsync(ReplicationState state, CancellationToken cancellationToken)
         {
-            var batchEnumerator = await _sourceRepository.GetDocumentsAsync(_options.BatchSize, cancellationToken: cancellationToken);
+            var batchEnumerator = await _sourceRepository.GetDocumentsAsync(cancellationToken: cancellationToken);
             await foreach (var batch in batchEnumerator)
             {
                 if (batch.Any())

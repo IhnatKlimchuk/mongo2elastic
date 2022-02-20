@@ -33,7 +33,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
             var url = new Uri(destinationOptions.Value.ElasticSearchUrl);
             var pool = new SingleNodeConnectionPool(url);
             var config = new ConnectionSettings(pool)
-                .DefaultMappingFor<Person>(p => p
+                .DefaultMappingFor<ElasticPerson>(p => p
                     .IndexName("persons")
                     .IdProperty(x => x.Id))
                 .EnableDebugMode()
@@ -46,7 +46,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
 
         public async Task DeleteAllPersonsAsync(CancellationToken cancellationToken = default)
         {
-            var response = await Client.DeleteByQueryAsync<Person>(del => del
+            var response = await Client.DeleteByQueryAsync<ElasticPerson>(del => del
                 .Conflicts(Conflicts.Proceed)
                 .Query(q => q.QueryString(qs => qs.Query("*"))), cancellationToken);
             if (!response.IsValid)
@@ -55,9 +55,9 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
             }
         }
 
-        public async Task<Person> GetPersonOrDefaultAsync(string personId, CancellationToken cancellationToken = default)
+        public async Task<ElasticPerson> GetPersonOrDefaultAsync(string personId, CancellationToken cancellationToken = default)
         {
-            var response = await Client.GetAsync<Person>(personId, ct: cancellationToken);
+            var response = await Client.GetAsync<ElasticPerson>(personId, ct: cancellationToken);
             if (!response.IsValid && response.ApiCall.HttpStatusCode != 404)
             {
                 throw new InvalidOperationException("Failed to get person by id", response.OriginalException);
@@ -68,7 +68,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
 
         public async Task<long> CountPersonsAsync(CancellationToken cancellationToken = default)
         {
-            var response = await Client.CountAsync<Person>(ct: cancellationToken);
+            var response = await Client.CountAsync<ElasticPerson>(ct: cancellationToken);
             if (!response.IsValid)
             {
                 throw new InvalidOperationException("Failed to count persons", response.OriginalException);
@@ -80,6 +80,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
         public void Dispose()
         {
             _serviceProvider.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

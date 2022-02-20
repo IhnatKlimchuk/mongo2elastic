@@ -19,7 +19,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 
         public IMongoClient Client { get; private set; }
         public IMongoDatabase Database { get; private set; }
-        public IMongoCollection<Person> PersonCollection { get; private set; }
+        public IMongoCollection<MongoPerson> PersonCollection { get; private set; }
         public IMongoCollection<CompositeIdPerson> CompositeIdPersonCollection { get; private set; }
         public IMongoCollection<ReplicationState> ReplicationStateCollection { get; private set; }
 
@@ -38,25 +38,25 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 
             Client = new MongoClient(MongoClientSettings.FromConnectionString(sourceOptions.Value.MongoConnectionString));
             Database = Client.GetDatabase(sourceOptions.Value.MongoDatabase);
-            PersonCollection = Database.GetCollection<Person>("persons");
+            PersonCollection = Database.GetCollection<MongoPerson>("persons");
             CompositeIdPersonCollection = Database.GetCollection<CompositeIdPerson>("composite-id-persons");
             ReplicationStateCollection = Database.GetCollection<ReplicationState>("replications");
         }
 
-        public async Task<ICollection<Person>> AddNewPersonsAsync(int count = 10, CancellationToken cancellationToken = default)
+        public async Task<ICollection<MongoPerson>> AddNewPersonsAsync(int count = 10, CancellationToken cancellationToken = default)
         {
-            var personsToAdd = Person.Generate(count);
+            var personsToAdd = MongoPerson.Generate(count);
             await PersonCollection.InsertManyAsync(personsToAdd, cancellationToken: cancellationToken);
             return personsToAdd;
         }
 
-        public async Task<Person> UpdatePersonAsync(Guid personId, CancellationToken cancellationToken = default)
+        public async Task<MongoPerson> UpdatePersonAsync(Guid personId, CancellationToken cancellationToken = default)
         {
-            var updatedPersons = Person.Generate(1);
+            var updatedPersons = MongoPerson.Generate(1);
             var updatedPerson = updatedPersons.Single();
             updatedPerson.Id = personId;
             var result = await PersonCollection.ReplaceOneAsync(
-                Builders<Person>.Filter.Eq(x => x.Id, personId), updatedPerson, cancellationToken: cancellationToken);
+                Builders<MongoPerson>.Filter.Eq(x => x.Id, personId), updatedPerson, cancellationToken: cancellationToken);
             if (result.ModifiedCount != 1)
             {
                 throw new InvalidOperationException("Failed to update person");
@@ -87,7 +87,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 
         public async Task DeletePersonAsync(Guid personId, CancellationToken cancellationToken = default)
         {
-            var result = await PersonCollection.DeleteOneAsync(Builders<Person>.Filter.Eq(x => x.Id, personId), cancellationToken);
+            var result = await PersonCollection.DeleteOneAsync(Builders<MongoPerson>.Filter.Eq(x => x.Id, personId), cancellationToken);
             if (result.DeletedCount != 1)
             {
                 throw new InvalidOperationException("Failed to delete person");
@@ -105,7 +105,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 
         public Task DeleteAllPersonsAsync(CancellationToken cancellationToken = default)
         {
-            return PersonCollection.DeleteManyAsync(Builders<Person>.Filter.Empty, cancellationToken);
+            return PersonCollection.DeleteManyAsync(Builders<MongoPerson>.Filter.Empty, cancellationToken);
         }
 
         public Task DeleteAllCompositeIdPersonsAsync(CancellationToken cancellationToken = default)
@@ -129,12 +129,13 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
                 options: default,
                 cancellationToken: cancellationToken);
 
-            return await cursor.SingleOrDefaultAsync();
+            return await cursor.SingleOrDefaultAsync(cancellationToken);
         }
 
         public void Dispose()
         {
             _serviceProvider.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

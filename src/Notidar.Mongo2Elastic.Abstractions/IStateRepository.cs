@@ -1,6 +1,6 @@
 ﻿namespace Notidar.Mongo2Elastic
 {
-    public interface IReplicationStateRepository
+    public interface IStateRepository
     {
         Task<ReplicationState?> TryLockStateAsync(
             Guid replicatorId,
