@@ -3,12 +3,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Nest;
+using Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch.Models;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elastic
+namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
 {
     public class ElasticSearchFixture : IDisposable
     {

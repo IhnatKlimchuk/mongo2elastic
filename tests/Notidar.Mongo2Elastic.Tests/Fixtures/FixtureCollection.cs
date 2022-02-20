@@ -1,5 +1,5 @@
-﻿using Notidar.Mongo2Elastic.Tests.Fixtures.Elastic;
-using Notidar.Mongo2Elastic.Tests.Fixtures.Mongo;
+﻿using Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch;
+using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB;
 using Xunit;
 
 namespace Notidar.Mongo2Elastic.Tests.Fixtures

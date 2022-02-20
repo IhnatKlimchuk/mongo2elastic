@@ -1,12 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson.Serialization;
 using Notidar.Mongo2Elastic.Elasticsearch;
 using Notidar.Mongo2Elastic.MongoDB;
 using Notidar.Mongo2Elastic.Tests.Fixtures;
-using Notidar.Mongo2Elastic.Tests.Fixtures.Elastic;
-using Notidar.Mongo2Elastic.Tests.Fixtures.Mongo;
+using Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch;
+using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB;
 using System;
 using System.IO;
 using System.Linq;
@@ -14,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Notidar.Mongo2Elastic.Tests
+namespace Notidar.Mongo2Elastic.Tests.Features
 {
     [Collection("Fixture")]
     public class GenericReplicatorTests
@@ -24,8 +23,6 @@ namespace Notidar.Mongo2Elastic.Tests
         private readonly ReplicatorOptions _options;
         private readonly MongoDbFixture _mongoDbFixture;
         private readonly ElasticSearchFixture _elasticSearchFixture;
-
-        
 
         public GenericReplicatorTests(MongoDbFixture mongoDbFixture, ElasticSearchFixture elasticSearchFixture)
         {
@@ -43,11 +40,11 @@ namespace Notidar.Mongo2Elastic.Tests
 
             _options = _serviceProvider.GetRequiredService<IOptions<ReplicatorOptions>>().Value;
 
-            _replicator = new ConvertingGenericReplicator<Fixtures.Mongo.Person, Guid, Fixtures.Elastic.Person>(
+            _replicator = new ConvertingGenericReplicator<Fixtures.MongoDB.Models.Person, Guid, Fixtures.Elasticsearch.Models.Person>(
                 new MongoReplicationStateRepository(_mongoDbFixture.ReplicationStateCollection, "persons"),
-                new DestinationRepository<Fixtures.Elastic.Person>(_elasticSearchFixture.Client),
-                new SourceRepository<Fixtures.Mongo.Person, Guid>(_mongoDbFixture.PersonCollection, TimeSpan.FromSeconds(1), x => x.Id),
-                x => new Fixtures.Elastic.Person { Id = x.Id },
+                new DestinationRepository<Fixtures.Elasticsearch.Models.Person>(_elasticSearchFixture.Client),
+                new SourceRepository<Fixtures.MongoDB.Models.Person, Guid>(_mongoDbFixture.PersonCollection, TimeSpan.FromSeconds(1), x => x.Id),
+                x => new Fixtures.Elasticsearch.Models.Person { Id = x.Id },
                 _options);
         }
 

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
+namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models
 {
     public class Person
     {

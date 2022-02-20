@@ -2,13 +2,14 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notidar.Mongo2Elastic.Tests.Fixtures.Mongo
+namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 {
     public class MongoDbFixture : IDisposable
     {
