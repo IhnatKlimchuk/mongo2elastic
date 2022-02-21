@@ -1,5 +1,4 @@
 # Mongo2Elastic
-=======
 
 Strongly typed MongoDB to Elasticsearch replication library.
 
