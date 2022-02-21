@@ -23,7 +23,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch.Models
             };
         }
 
-        public static ElasticPerson FromMongoCompositeIdPerson(MongoDB.Models.CompositeIdPerson person)
+        public static ElasticPerson FromMongoCompositeIdPerson(MongoDB.Models.MongoCompositeIdPerson person)
         {
             return new ElasticPerson
             {

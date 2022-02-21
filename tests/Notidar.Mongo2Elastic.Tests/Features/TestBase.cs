@@ -4,6 +4,8 @@ using Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch;
 using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB;
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Notidar.Mongo2Elastic.Tests.Features
@@ -31,6 +33,17 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             ServiceProvider = new ServiceCollection()
                 .Configure<ReplicatorOptions>(Configuration.GetSection(nameof(ReplicatorOptions)))
                 .BuildServiceProvider();
+        }
+
+        protected async Task WithReplicationRunning(IReplicator replicator, Func<Task> action)
+        {
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var task = replicator.ExecuteAsync(cancellationTokenSource.Token);
+
+            await action();
+
+            cancellationTokenSource.Cancel();
+            await task;
         }
     }
 }

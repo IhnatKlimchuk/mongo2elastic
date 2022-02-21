@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models.CompositeIdPerson;
+using static Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models.MongoCompositeIdPerson;
 
 namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 {
@@ -20,7 +20,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
         public IMongoClient Client { get; private set; }
         public IMongoDatabase Database { get; private set; }
         public IMongoCollection<MongoPerson> PersonCollection { get; private set; }
-        public IMongoCollection<CompositeIdPerson> CompositeIdPersonCollection { get; private set; }
+        public IMongoCollection<MongoCompositeIdPerson> CompositeIdPersonCollection { get; private set; }
         public IMongoCollection<ReplicationState> ReplicationStateCollection { get; private set; }
 
         public MongoDbFixture()
@@ -39,7 +39,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
             Client = new MongoClient(MongoClientSettings.FromConnectionString(sourceOptions.Value.MongoConnectionString));
             Database = Client.GetDatabase(sourceOptions.Value.MongoDatabase);
             PersonCollection = Database.GetCollection<MongoPerson>("persons");
-            CompositeIdPersonCollection = Database.GetCollection<CompositeIdPerson>("composite-id-persons");
+            CompositeIdPersonCollection = Database.GetCollection<MongoCompositeIdPerson>("composite-id-persons");
             ReplicationStateCollection = Database.GetCollection<ReplicationState>("replications");
         }
 
@@ -64,20 +64,20 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
             return updatedPerson;
         }
 
-        public async Task<ICollection<CompositeIdPerson>> AddNewCompositeIdPersonsAsync(int count = 10, CancellationToken cancellationToken = default)
+        public async Task<ICollection<MongoCompositeIdPerson>> AddNewCompositeIdPersonsAsync(int count = 10, CancellationToken cancellationToken = default)
         {
-            var personsToAdd = CompositeIdPerson.Generate(count);
+            var personsToAdd = MongoCompositeIdPerson.Generate(count);
             await CompositeIdPersonCollection.InsertManyAsync(personsToAdd, cancellationToken: cancellationToken);
             return personsToAdd;
         }
 
-        public async Task<CompositeIdPerson> UpdateCompositeIdPersonAsync(PersonCompositeId personId, CancellationToken cancellationToken = default)
+        public async Task<MongoCompositeIdPerson> UpdateCompositeIdPersonAsync(PersonCompositeId personId, CancellationToken cancellationToken = default)
         {
-            var updatedPersons = CompositeIdPerson.Generate(1);
+            var updatedPersons = MongoCompositeIdPerson.Generate(1);
             var updatedPerson = updatedPersons.Single();
             updatedPerson.Id = personId;
             var result = await CompositeIdPersonCollection.ReplaceOneAsync(
-                Builders<CompositeIdPerson>.Filter.Eq(x => x.Id, personId), updatedPerson, cancellationToken: cancellationToken);
+                Builders<MongoCompositeIdPerson>.Filter.Eq(x => x.Id, personId), updatedPerson, cancellationToken: cancellationToken);
             if (result.ModifiedCount != 1)
             {
                 throw new InvalidOperationException("Failed to update person");
@@ -96,7 +96,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 
         public async Task DeleteCompositeIdPersonAsync(PersonCompositeId personId, CancellationToken cancellationToken = default)
         {
-            var result = await CompositeIdPersonCollection.DeleteOneAsync(Builders<CompositeIdPerson>.Filter.Eq(x => x.Id, personId), cancellationToken);
+            var result = await CompositeIdPersonCollection.DeleteOneAsync(Builders<MongoCompositeIdPerson>.Filter.Eq(x => x.Id, personId), cancellationToken);
             if (result.DeletedCount != 1)
             {
                 throw new InvalidOperationException("Failed to delete person");
@@ -110,7 +110,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
 
         public Task DeleteAllCompositeIdPersonsAsync(CancellationToken cancellationToken = default)
         {
-            return CompositeIdPersonCollection.DeleteManyAsync(Builders<CompositeIdPerson>.Filter.Empty, cancellationToken);
+            return CompositeIdPersonCollection.DeleteManyAsync(Builders<MongoCompositeIdPerson>.Filter.Empty, cancellationToken);
         }
 
         public Task ResetReplicationStateAsync(string replicationId, CancellationToken cancellationToken = default)

@@ -8,7 +8,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models
         [ModuleInitializer]
         public static void AddMongoDbMappings()
         {
-            BsonClassMap.RegisterClassMap<CompositeIdPerson>(t =>
+            BsonClassMap.RegisterClassMap<MongoCompositeIdPerson>(t =>
             {
                 t.AutoMap();
                 t.MapIdField(c => c.Id);
