@@ -10,7 +10,7 @@ Supports:
 
 - [x] Create PoC
 - [x] Add on the fly conversion
-- [ ] Add MongoDB projection pipeline support
+- [x] Add MongoDB projection pipeline support
 - [ ] Finalizing abstractions
 - [ ] Finalizing package structure: Elasticsearch and MongoDb package naming for different versions: 7.x and 6.x
 - [ ] Finalizing fluent builder
