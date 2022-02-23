@@ -35,7 +35,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
                 .BuildServiceProvider();
         }
 
-        protected async Task WithReplicationRunning(IReplicator replicator, Func<Task> action)
+        protected static async Task WithReplicationRunning(IReplicator replicator, Func<Task> action)
         {
             using var cancellationTokenSource = new CancellationTokenSource();
             var task = replicator.ExecuteAsync(cancellationTokenSource.Token);

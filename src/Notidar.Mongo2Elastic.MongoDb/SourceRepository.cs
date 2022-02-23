@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Linq.Expressions;
 
 namespace Notidar.Mongo2Elastic.MongoDB
 {
@@ -7,12 +8,24 @@ namespace Notidar.Mongo2Elastic.MongoDB
     {
         private readonly IMongoCollection<TDocument> _documentCollection;
         private readonly SourceRepositoryOptions _options;
+        private readonly ProjectionDefinition<TDocument, TDocument> _projection;
         public SourceRepository(
             IMongoCollection<TDocument> documentCollection,
-            SourceRepositoryOptions options)
+            SourceRepositoryOptions options,
+            params Expression<Func<TDocument, object>>[] projectionExcludeFields)
         {
             _documentCollection = documentCollection;
             _options = options;
+
+            if (projectionExcludeFields?.Length > 0)
+            {
+                ProjectionDefinition<TDocument> projection = new BsonDocumentProjectionDefinition<TDocument>(new BsonDocument { });
+                foreach (var projectionExcludeField in projectionExcludeFields)
+                {
+                    projection = projection.Exclude(projectionExcludeField);
+                }
+                _projection = projection;
+            }
         }
 
         public async Task<IAsyncEnumerable<IEnumerable<TDocument>>> GetDocumentsAsync(CancellationToken cancellationToken = default)
@@ -21,6 +34,7 @@ namespace Notidar.Mongo2Elastic.MongoDB
                 filter: Builders<TDocument>.Filter.Empty,
                 options: new FindOptions<TDocument>
                 {
+                    Projection = _projection,
                     BatchSize = _options.BatchSize,
                 },
                 cancellationToken: cancellationToken);
@@ -28,11 +42,33 @@ namespace Notidar.Mongo2Elastic.MongoDB
             return cursor.ToAsyncEnumerable(cancellationToken);
         }
 
-        public async Task<IAsyncReplicationStream<TDocument>?> TryGetStreamAsync(string? resumeToken, CancellationToken cancellationToken = default)
+        public async Task<IAsyncReplicationStream<TDocument>?> TryGetStreamAsync(string? resumeToken = null, CancellationToken cancellationToken = default)
         {
             try
             {
-                var streamCursor = await _documentCollection.WatchAsync(
+                var pipelineStages = new List<IPipelineStageDefinition>
+                {
+                    PipelineStageDefinitionBuilder.Project<ChangeStreamDocument<TDocument>, ChangeStreamDocument<TDocument>>(new BsonDocument
+                    {
+                        { "ns", 0},
+                        { "to", 0},
+                        { "updateDescription", 0 },
+                        { "clusterTime", 0},
+                        { "txnNumber", 0},
+                        { "lsid", 0},
+                    })
+                };
+
+                if (_projection != null)
+                {
+                    pipelineStages.Add(PipelineStageDefinitionBuilder.Project<ChangeStreamDocument<TDocument>, ChangeStreamDocument<TDocument>>(new BsonDocument
+                    {
+                        { "fullDocument", _projection.Render(_documentCollection.DocumentSerializer, _documentCollection.Settings.SerializerRegistry).Document},
+                    }));
+                }
+
+                var streamCursor = await _documentCollection.WatchAsync<ChangeStreamDocument<TDocument>>(
+                    pipeline: pipelineStages,
                     options: new ChangeStreamOptions
                     {
                         MaxAwaitTime = _options.MaxAwaitTime,
@@ -41,6 +77,7 @@ namespace Notidar.Mongo2Elastic.MongoDB
                         BatchSize = _options.BatchSize
                     },
                     cancellationToken: cancellationToken);
+
                 return new MongoAsyncReplicationStream<TDocument>(streamCursor);
             }
             catch

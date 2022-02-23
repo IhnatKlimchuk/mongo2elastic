@@ -63,6 +63,10 @@ namespace Notidar.Mongo2Elastic
                             {
                                 // nothing
                             }
+                            catch (Exception)
+                            {
+                                throw;
+                            }
                             finally
                             {
                                 cancellationTokenSource.Cancel();
