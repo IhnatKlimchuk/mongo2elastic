@@ -5,8 +5,8 @@ namespace Notidar.Mongo2Elastic.Elasticsearch.Builder
 {
     public static class ReplicatorBuilderExtensions
     {
-        public static IReplicatorBuilder<TSource, TDestination> ToElasticsearchWithVersions<TSource, TDestination>(
-            this IReplicatorBuilder<TSource, TDestination> replicatorBuilder, IElasticClient client, Action<DestinationRepositoryOptions> configureAction = null)
+        public static IReplicatorStateBuilder<TSource, TDestination> ToElasticsearchWithVersions<TSource, TDestination>(
+            this IReplicatorDestinationBuilder<TSource, TDestination> replicatorBuilder, IElasticClient client, Action<DestinationRepositoryOptions> configureAction = null)
             where TSource : class
             where TDestination : class, IVersionedDocument
         {
@@ -15,8 +15,8 @@ namespace Notidar.Mongo2Elastic.Elasticsearch.Builder
             return replicatorBuilder.Add(new VersionedDestinationRepository<TDestination>(client, options));
         }
 
-        public static IReplicatorBuilder<TSource, TDestination> ToElasticsearchWithReset<TSource, TDestination>(
-            this IReplicatorBuilder<TSource, TDestination> replicatorBuilder, IElasticClient client, Action<DestinationRepositoryOptions> configureAction = null)
+        public static IReplicatorStateBuilder<TSource, TDestination> ToElasticsearchWithReset<TSource, TDestination>(
+            this IReplicatorDestinationBuilder<TSource, TDestination> replicatorBuilder, IElasticClient client, Action<DestinationRepositoryOptions> configureAction = null)
             where TSource : class
             where TDestination : class
         {

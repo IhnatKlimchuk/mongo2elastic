@@ -3,7 +3,11 @@ using Notidar.Mongo2Elastic.MongoDB;
 
 namespace Notidar.Mongo2Elastic.Builder
 {
-    public class ReplicatorBuilder<TSource, TDestination> : IReplicatorBuilder<TSource, TDestination>
+    public class ReplicatorBuilder<TSource, TDestination> :
+        IReplicatorSourceBuilder<TSource, TDestination>,
+        IReplicatorDestinationBuilder<TSource, TDestination>,
+        IReplicatorStateBuilder<TSource, TDestination>,
+        IReplicatorBuilder<TSource, TDestination>
         where TDestination : class
         where TSource : class
     {
@@ -21,13 +25,13 @@ namespace Notidar.Mongo2Elastic.Builder
             configureAction?.Invoke(_options);
         }
 
-        public IReplicatorBuilder<TSource, TDestination> Add(ISourceRepository<TSource> sourceRepository)
+        public IReplicatorDestinationBuilder<TSource, TDestination> Add(ISourceRepository<TSource> sourceRepository)
         {
             _sourceRepository = sourceRepository;
             return this;
         }
 
-        public IReplicatorBuilder<TSource, TDestination> Add(IDestinationRepository<TDestination> destinationRepository)
+        public IReplicatorStateBuilder<TSource, TDestination> Add(IDestinationRepository<TDestination> destinationRepository)
         {
             _destinationRepository = destinationRepository;
             return this;
