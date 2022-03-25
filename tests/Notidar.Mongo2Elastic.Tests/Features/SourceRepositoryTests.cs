@@ -5,6 +5,7 @@ using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB;
 using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models;
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -21,9 +22,16 @@ namespace Notidar.Mongo2Elastic.Tests.Features
         {
             var sourceRepository = new SourceRepository<MongoPerson>(
                 MongoDbFixture.PersonCollection,
-                new SourceRepositoryOptions { BatchSize = 1000, MaxAwaitTime = TimeSpan.FromSeconds(30) },
-                x => x.FirstName,
-                x => x.LastName);
+                new SourceRepositoryOptions<MongoPerson>
+                {
+                    BatchSize = 1000,
+                    MaxAwaitTime = TimeSpan.FromSeconds(30),
+                    ProjectionExcludeFields = new Expression<Func<MongoPerson, object>>[]
+                    {
+                        x => x.FirstName,
+                        x => x.LastName
+                    }
+                });
 
             await MongoDbFixture.DeleteAllPersonsAsync();
             await MongoDbFixture.AddNewPersonsAsync(1);
@@ -47,14 +55,21 @@ namespace Notidar.Mongo2Elastic.Tests.Features
         {
             var sourceRepository = new SourceRepository<MongoPerson>(
                 MongoDbFixture.PersonCollection,
-                new SourceRepositoryOptions { BatchSize = 1000, MaxAwaitTime = TimeSpan.FromSeconds(30) },
-                x => x.FirstName,
-                x => x.LastName);
+                new SourceRepositoryOptions<MongoPerson>
+                {
+                    BatchSize = 1000,
+                    MaxAwaitTime = TimeSpan.FromSeconds(30),
+                    ProjectionExcludeFields = new Expression<Func<MongoPerson, object>>[]
+                    {
+                        x => x.FirstName,
+                        x => x.LastName
+                    }
+                });
 
             await MongoDbFixture.DeleteAllPersonsAsync();
-            
+
             using var personsStreamCursor = await sourceRepository.TryGetStreamAsync();
-            
+
             await MongoDbFixture.AddNewPersonsAsync(1);
 
             await foreach (var personBatch in personsStreamCursor)

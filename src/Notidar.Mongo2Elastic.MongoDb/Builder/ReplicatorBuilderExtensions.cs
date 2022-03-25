@@ -1,6 +1,5 @@
 ﻿using MongoDB.Driver;
 using Notidar.Mongo2Elastic.Builder;
-using System.Linq.Expressions;
 
 namespace Notidar.Mongo2Elastic.MongoDB.Builder
 {
@@ -9,14 +8,13 @@ namespace Notidar.Mongo2Elastic.MongoDB.Builder
         public static IReplicatorDestinationBuilder<TSource, TDestination> FromMongoDb<TSource, TDestination>(
             this IReplicatorSourceBuilder<TSource, TDestination> replicatorBuilder,
             IMongoCollection<TSource> mongoCollection,
-            Action<SourceRepositoryOptions> configureAction = null,
-            params Expression<Func<TSource, object>>[] projectionExcludeFields)
+            Action<SourceRepositoryOptions<TSource>> configureAction = null)
             where TSource : class
             where TDestination : class
         {
-            var options = new SourceRepositoryOptions();
+            var options = new SourceRepositoryOptions<TSource>();
             configureAction?.Invoke(options);
-            return replicatorBuilder.Add(new SourceRepository<TSource>(mongoCollection, options, projectionExcludeFields));
+            return replicatorBuilder.Add(new SourceRepository<TSource>(mongoCollection, options));
         }
 
         public static IReplicatorDestinationBuilder<TSource, TDestination> FromMongoDb<TSource, TDestination>(
@@ -24,8 +22,7 @@ namespace Notidar.Mongo2Elastic.MongoDB.Builder
             string mongoConnectionString,
             string collectionName,
             string databaseName = null,
-            Action<SourceRepositoryOptions> configureAction = null,
-            params Expression<Func<TSource, object>>[] projectionExcludeFields)
+            Action<SourceRepositoryOptions<TSource>> configureAction = null)
             where TSource : class
             where TDestination : class
         {
@@ -34,7 +31,7 @@ namespace Notidar.Mongo2Elastic.MongoDB.Builder
             var db = client.GetDatabase(databaseName ?? url.DatabaseName ?? throw new ArgumentException("Unknown mongo database."));
             var collection = db.GetCollection<TSource>(collectionName);
 
-            return replicatorBuilder.FromMongoDb(collection, configureAction, projectionExcludeFields);
+            return replicatorBuilder.FromMongoDb(collection, configureAction);
         }
 
         public static IReplicatorBuilder<TSource, TDestination> WithMongoDbState<TSource, TDestination>(

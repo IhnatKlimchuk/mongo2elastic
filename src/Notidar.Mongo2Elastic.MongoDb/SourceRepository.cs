@@ -1,26 +1,24 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
-using System.Linq.Expressions;
 
 namespace Notidar.Mongo2Elastic.MongoDB
 {
     public class SourceRepository<TDocument> : ISourceRepository<TDocument> where TDocument : class
     {
         private readonly IMongoCollection<TDocument> _documentCollection;
-        private readonly SourceRepositoryOptions _options;
+        private readonly SourceRepositoryOptions<TDocument> _options;
         private readonly ProjectionDefinition<TDocument, TDocument> _projection;
         public SourceRepository(
             IMongoCollection<TDocument> documentCollection,
-            SourceRepositoryOptions options,
-            params Expression<Func<TDocument, object>>[] projectionExcludeFields)
+            SourceRepositoryOptions<TDocument> options)
         {
             _documentCollection = documentCollection;
             _options = options;
 
-            if (projectionExcludeFields?.Length > 0)
+            if (options.ProjectionExcludeFields != null && options.ProjectionExcludeFields.Count > 0)
             {
-                ProjectionDefinition<TDocument> projection = new BsonDocumentProjectionDefinition<TDocument>(new BsonDocument { });
-                foreach (var projectionExcludeField in projectionExcludeFields)
+                ProjectionDefinition<TDocument> projection = new BsonDocumentProjectionDefinition<TDocument>(new BsonDocument());
+                foreach (var projectionExcludeField in options.ProjectionExcludeFields)
                 {
                     projection = projection.Exclude(projectionExcludeField);
                 }
