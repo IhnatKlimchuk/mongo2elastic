@@ -23,7 +23,13 @@ namespace Notidar.Mongo2Elastic.Elasticsearch
             var response = await Client.BulkAsync(
                 selector: b => b
                     .Index<TDocument>()
-                    .Refresh(refresh)
+                    .Refresh(refresh switch
+                    {
+                        Refresh.True => global::Elasticsearch.Net.Refresh.True,
+                        Refresh.False => global::Elasticsearch.Net.Refresh.False,
+                        Refresh.WaitFor => global::Elasticsearch.Net.Refresh.WaitFor,
+                        _ => global::Elasticsearch.Net.Refresh.True
+                    })
                     .IndexMany(addOrUpdate)
                     .DeleteMany(delete),
                 ct: cancellationToken);

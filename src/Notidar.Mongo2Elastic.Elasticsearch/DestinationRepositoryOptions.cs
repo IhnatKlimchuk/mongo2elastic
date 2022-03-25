@@ -1,9 +1,7 @@
-﻿using Elasticsearch.Net;
-
-namespace Notidar.Mongo2Elastic.Elasticsearch
+﻿namespace Notidar.Mongo2Elastic.Elasticsearch
 {
     public class DestinationRepositoryOptions
     {
-        public Refresh Refresh { get; set; }
+        public Refresh Refresh { get; set; } = Refresh.True;
     }
 }

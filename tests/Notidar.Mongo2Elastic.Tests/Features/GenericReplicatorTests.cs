@@ -21,17 +21,9 @@ namespace Notidar.Mongo2Elastic.Tests.Features
         public GenericReplicatorTests(MongoDbFixture mongoDbFixture, ElasticsearchFixture elasticsearchFixture) : base(mongoDbFixture, elasticsearchFixture)
         {
             _replicator = ReplicationBuilder
-                .For<MongoPerson, ElasticPerson>(ElasticPerson.FromMongoPerson, c => {
-                    c.StateUpdateDelay = TimeSpan.FromSeconds(1);
-                    c.LockTimeout = TimeSpan.FromSeconds(5);
-                })
-                .FromMongoDb(MongoDbFixture.PersonCollection, c => {
-                    c.MaxAwaitTime = TimeSpan.FromSeconds(1);
-                    c.BatchSize = 1000;
-                })
-                .ToElasticsearchWithReset(ElasticsearchFixture.Client, c => {
-                    c.Refresh = global::Elasticsearch.Net.Refresh.True;
-                })
+                .For<MongoPerson, ElasticPerson>(ElasticPerson.FromMongoPerson)
+                .FromMongoDb(MongoDbFixture.PersonCollection)
+                .ToElasticsearchWithReset(ElasticsearchFixture.Client)
                 .WithMongoDbState(MongoDbFixture.ReplicationStateCollection, "persons")
                 .Build();
         }

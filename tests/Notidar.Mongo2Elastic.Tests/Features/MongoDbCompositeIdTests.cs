@@ -20,17 +20,9 @@ namespace Notidar.Mongo2Elastic.Tests.Features
         public MongoDbCompositeIdTests(MongoDbFixture mongoDbFixture, ElasticsearchFixture elasticsearchFixture) : base(mongoDbFixture, elasticsearchFixture)
         {
             _replicator = ReplicationBuilder
-                .For<MongoCompositeIdPerson, ElasticPerson>(ElasticPerson.FromMongoCompositeIdPerson, c => {
-                    c.StateUpdateDelay = TimeSpan.FromSeconds(1);
-                    c.LockTimeout = TimeSpan.FromSeconds(5);
-                })
-                .FromMongoDb(MongoDbFixture.CompositeIdPersonCollection, c => {
-                    c.MaxAwaitTime = TimeSpan.FromSeconds(1);
-                    c.BatchSize = 1000;
-                })
-                .ToElasticsearchWithReset(ElasticsearchFixture.Client, c => {
-                    c.Refresh = global::Elasticsearch.Net.Refresh.True;
-                })
+                .For<MongoCompositeIdPerson, ElasticPerson>(ElasticPerson.FromMongoCompositeIdPerson)
+                .FromMongoDb(MongoDbFixture.CompositeIdPersonCollection)
+                .ToElasticsearchWithReset(ElasticsearchFixture.Client)
                 .WithMongoDbState(MongoDbFixture.ReplicationStateCollection, "composite-id-persons")
                 .Build();
         }
