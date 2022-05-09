@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Notidar.Mongo2Elastic.State;
 using Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB.Models;
 using System;
 using System.Collections.Generic;
@@ -21,7 +22,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
         public IMongoDatabase Database { get; private set; }
         public IMongoCollection<MongoPerson> PersonCollection { get; private set; }
         public IMongoCollection<MongoCompositeIdPerson> CompositeIdPersonCollection { get; private set; }
-        public IMongoCollection<ReplicationState> ReplicationStateCollection { get; private set; }
+        public IMongoCollection<StateMongoDbDocument> ReplicationStateCollection { get; private set; }
 
         public MongoDbFixture()
         {
@@ -40,7 +41,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
             Database = Client.GetDatabase(sourceOptions.Value.MongoDatabase);
             PersonCollection = Database.GetCollection<MongoPerson>("persons");
             CompositeIdPersonCollection = Database.GetCollection<MongoCompositeIdPerson>("composite-id-persons");
-            ReplicationStateCollection = Database.GetCollection<ReplicationState>("replications");
+            ReplicationStateCollection = Database.GetCollection<StateMongoDbDocument>("replications");
         }
 
         public async Task<ICollection<MongoPerson>> AddNewPersonsAsync(int count = 10, CancellationToken cancellationToken = default)
@@ -116,16 +117,16 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.MongoDB
         public Task ResetReplicationStateAsync(string replicationId, CancellationToken cancellationToken = default)
         {
             return ReplicationStateCollection.ReplaceOneAsync(
-                filter: Builders<ReplicationState>.Filter.Eq(x => x.Id, replicationId),
-                replacement: new ReplicationState { Id = replicationId },
+                filter: Builders<StateMongoDbDocument>.Filter.Eq(x => x.Id, replicationId),
+                replacement: new StateMongoDbDocument { Id = replicationId },
                 options: new ReplaceOptions { IsUpsert = true },
                 cancellationToken: cancellationToken);
         }
 
-        public async Task<ReplicationState?> GetReplicationStateOrDefaultAsync(string replicationId, CancellationToken cancellationToken = default)
+        public async Task<StateMongoDbDocument?> GetReplicationStateOrDefaultAsync(string replicationId, CancellationToken cancellationToken = default)
         {
             var cursor = await ReplicationStateCollection.FindAsync(
-                filter: Builders<ReplicationState>.Filter.Eq(x => x.Id, replicationId),
+                filter: Builders<StateMongoDbDocument>.Filter.Eq(x => x.Id, replicationId),
                 options: default,
                 cancellationToken: cancellationToken);
 

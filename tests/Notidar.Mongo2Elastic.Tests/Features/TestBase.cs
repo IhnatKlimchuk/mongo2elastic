@@ -31,7 +31,6 @@ namespace Notidar.Mongo2Elastic.Tests.Features
                 .Build();
 
             ServiceProvider = new ServiceCollection()
-                .Configure<ReplicatorOptions>(Configuration.GetSection(nameof(ReplicatorOptions)))
                 .BuildServiceProvider();
         }
 

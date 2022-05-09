@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using Notidar.Mongo2Elastic.Builder;
+using Notidar.Mongo2Elastic.State;
 
 namespace Notidar.Mongo2Elastic.MongoDB.Builder
 {
@@ -36,12 +37,12 @@ namespace Notidar.Mongo2Elastic.MongoDB.Builder
 
         public static IReplicatorBuilder<TSource, TDestination> WithMongoDbState<TSource, TDestination>(
             this IReplicatorStateBuilder<TSource, TDestination> replicatorBuilder,
-            IMongoCollection<ReplicationState> mongoCollection,
+            IMongoCollection<StateMongoDbDocument> mongoCollection,
             string replicationId)
             where TSource : class
             where TDestination : class
         {
-            return replicatorBuilder.Add(new MongoReplicationStateRepository(mongoCollection, replicationId));
+            return replicatorBuilder.Add(new MongoStateRepository(mongoCollection, replicationId));
         }
 
         public static IReplicatorBuilder<TSource, TDestination> WithMongoDbState<TSource, TDestination>(
@@ -56,7 +57,7 @@ namespace Notidar.Mongo2Elastic.MongoDB.Builder
             var url = MongoUrl.Create(mongoConnectionString);
             var client = new MongoClient(url);
             var db = client.GetDatabase(databaseName ?? url.DatabaseName ?? throw new ArgumentException("Unknown mongo database."));
-            var collection = db.GetCollection<ReplicationState>(collectionName ?? "mongo2elastic-replications");
+            var collection = db.GetCollection<StateMongoDbDocument>(collectionName ?? "mongo2elastic-replications");
             
             return replicatorBuilder.WithMongoDbState(collection, replicationId);
         }

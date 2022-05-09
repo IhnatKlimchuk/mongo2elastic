@@ -2,14 +2,13 @@
 {
     public static class ReplicationBuilder
     {
-        public static IReplicatorSourceBuilder<TSource, TSource> For<TSource>(Action<ReplicatorOptions> configureAction = null)
+        public static IReplicatorSourceBuilder<TSource, TSource> For<TSource>()
             where TSource : class
-            => new ReplicatorBuilder<TSource, TSource>(x => x, configureAction);
+            => new ReplicatorBuilder<TSource, TSource>(x => x);
         public static IReplicatorSourceBuilder<TSource, TDestination> For<TSource, TDestination>(
-            Func<TSource, TDestination> map,
-            Action<ReplicatorOptions> configureAction = null)
+            Func<TSource, TDestination> map)
             where TSource : class
             where TDestination : class
-            => new ReplicatorBuilder<TSource, TDestination>(map, configureAction);
+            => new ReplicatorBuilder<TSource, TDestination>(map);
     }
 }
