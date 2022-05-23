@@ -1,4 +1,5 @@
-﻿using Notidar.Mongo2Elastic.Elasticsearch;
+﻿using Microsoft.Extensions.Logging;
+using Notidar.Mongo2Elastic.Elasticsearch;
 using Notidar.Mongo2Elastic.MongoDB;
 using Notidar.Mongo2Elastic.State;
 
@@ -10,40 +11,50 @@ namespace Notidar.Mongo2Elastic
     {
         private bool _isStopRequested = false;
         private Task _task = null;
-        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private CancellationTokenSource _cancellationTokenSource = new();
 
         private readonly IStateRepository _stateStore;
         private readonly IDestinationRepository<TDestinationDocument> _destinationRepository;
         private readonly ISourceRepository<TSourceDocument> _sourceRepository;
         private readonly Func<TSourceDocument, TDestinationDocument> _map;
+        private readonly ILogger<Replicator<TSourceDocument, TDestinationDocument>>? _logger;
 
         public Replicator(
             IStateRepository stateStore,
             IDestinationRepository<TDestinationDocument> destinationRepository,
             ISourceRepository<TSourceDocument> sourceRepository,
-            Func<TSourceDocument, TDestinationDocument> map)
+            Func<TSourceDocument, TDestinationDocument> map,
+            ILogger<Replicator<TSourceDocument, TDestinationDocument>> logger = null)
         {
             _stateStore = stateStore;
             _destinationRepository = destinationRepository;
-            _sourceRepository = sourceRepository; 
+            _sourceRepository = sourceRepository;
             _map = map;
+            _logger = logger;
         }
 
-        public async Task IntenalExecuteAsync(CancellationToken cancellationToken = default)
+        public async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
             while (!_isStopRequested)
             {
-                await using var stateHandler = await _stateStore.TryLockStateOrDefaultAsync(cancellationToken);
+                try
+                {
+                    await using var stateHandler = await _stateStore.TryLockStateOrDefaultAsync(cancellationToken);
 
-                // get existing stream
-                using var restoredStream = stateHandler.ResumeToken != null ? await _sourceRepository.TryGetStreamAsync(stateHandler.ResumeToken, cancellationToken) : null;
-                if (restoredStream != null)
-                {
-                    await ReplicateAsync(stateHandler, restoredStream, cancellationToken);
+                    // get existing stream
+                    using var restoredStream = stateHandler.ResumeToken != null ? await _sourceRepository.TryGetStreamAsync(stateHandler.ResumeToken, cancellationToken) : null;
+                    if (restoredStream != null)
+                    {
+                        await ReplicateAsync(stateHandler, restoredStream, cancellationToken);
+                    }
+                    else
+                    {
+                        await SyncAndReplicateAsync(stateHandler, cancellationToken);
+                    }
                 }
-                else
+                catch
                 {
-                    await SyncAndReplicateAsync(stateHandler, cancellationToken);
+                    // do nothing
                 }
             }
         }
@@ -55,7 +66,7 @@ namespace Notidar.Mongo2Elastic
                 throw new InvalidOperationException("Replication is already running.");
             }
 
-            _task = IntenalExecuteAsync(_cancellationTokenSource.Token);
+            _task = ExecuteAsync(_cancellationTokenSource.Token);
 
             return Task.CompletedTask;
         }
@@ -121,6 +132,36 @@ namespace Notidar.Mongo2Elastic
             await stateHandler.UpdateResumeTokenAsync(freshStream.GetResumeToken(), cancellationToken);
 
             await ReplicateAsync(stateHandler, freshStream, cancellationToken);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsyncCore().ConfigureAwait(false);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual async ValueTask DisposeAsyncCore()
+        {
+            if (_cancellationTokenSource is not null)
+            {
+                _cancellationTokenSource.Cancel();
+            }
+            if (_task is not null)
+            {
+                await _task.ConfigureAwait(false);
+            }
+
+            if (_cancellationTokenSource is not null)
+            {
+                _cancellationTokenSource.Dispose();
+            }
+            if (_task is not null)
+            {
+                _task.Dispose();
+            }
+
+            _cancellationTokenSource = null;
+            _task = null;
         }
     }
 }

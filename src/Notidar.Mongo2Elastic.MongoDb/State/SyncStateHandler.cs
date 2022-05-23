@@ -3,7 +3,7 @@ using MongoDB.Driver;
 
 namespace Notidar.Mongo2Elastic.State
 {
-    public class SyncStateHandler : IState
+    public sealed class SyncStateHandler : IState
     {
         private readonly IMongoCollection<StateMongoDbDocument> _stateCollection;
         private readonly StateMongoDbDocument _document;
