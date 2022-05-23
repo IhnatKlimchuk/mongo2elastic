@@ -70,7 +70,7 @@ namespace Notidar.Mongo2Elastic.MongoDB
                     options: new ChangeStreamOptions
                     {
                         MaxAwaitTime = _options.MaxAwaitTime,
-                        FullDocument = ChangeStreamFullDocumentOption.UpdateLookup,
+                        FullDocument = ChangeStreamFullDocumentOption.Default,
                         StartAfter = resumeToken == null ? null : new BsonDocument("_data", resumeToken),
                         BatchSize = _options.BatchSize
                     },

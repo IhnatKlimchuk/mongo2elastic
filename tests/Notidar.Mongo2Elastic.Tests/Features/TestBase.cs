@@ -42,7 +42,14 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             await action();
 
             cancellationTokenSource.Cancel();
-            await task;
+            try
+            {
+                await task;
+            }
+            catch when (cancellationTokenSource.IsCancellationRequested)
+            {
+                // do noting here
+            }
         }
     }
 }

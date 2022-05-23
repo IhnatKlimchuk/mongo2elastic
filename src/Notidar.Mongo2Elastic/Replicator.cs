@@ -27,17 +27,9 @@ namespace Notidar.Mongo2Elastic
 
         public async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    await IntenalExecuteAsync(cancellationToken);
-                }
-            }
-            catch (Exception)
-            {
-
-                throw;
+                await IntenalExecuteAsync(cancellationToken);
             }
         }
 
@@ -45,8 +37,8 @@ namespace Notidar.Mongo2Elastic
         {
             await using var stateHandler = await _stateStore.TryLockStateOrDefaultAsync(cancellationToken);
 
-            // get stream
-            using var restoredStream = await _sourceRepository.TryGetStreamAsync(stateHandler.ResumeToken, cancellationToken);
+            // get existing stream
+            using var restoredStream = stateHandler.ResumeToken != null ? await _sourceRepository.TryGetStreamAsync(stateHandler.ResumeToken, cancellationToken) : null;
             if (restoredStream != null)
             {
                 await ReplicateAsync(stateHandler, restoredStream, cancellationToken);
