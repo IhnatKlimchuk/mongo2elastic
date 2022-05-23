@@ -2,6 +2,7 @@
 {
     public interface IReplicator
     {
-        Task ExecuteAsync(CancellationToken cancellationToken = default);
+        Task StartAsync(CancellationToken cancellationToken = default);
+        Task StopAsync(CancellationToken cancellationToken = default);
     }
 }

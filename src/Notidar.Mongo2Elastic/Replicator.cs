@@ -8,6 +8,10 @@ namespace Notidar.Mongo2Elastic
         where TSourceDocument : class
         where TDestinationDocument : class
     {
+        private bool _isStopRequested = false;
+        private Task _task = null;
+        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+
         private readonly IStateRepository _stateStore;
         private readonly IDestinationRepository<TDestinationDocument> _destinationRepository;
         private readonly ISourceRepository<TSourceDocument> _sourceRepository;
@@ -25,28 +29,42 @@ namespace Notidar.Mongo2Elastic
             _map = map;
         }
 
-        public async Task ExecuteAsync(CancellationToken cancellationToken = default)
+        public async Task IntenalExecuteAsync(CancellationToken cancellationToken = default)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            while (!_isStopRequested)
             {
-                await IntenalExecuteAsync(cancellationToken);
+                await using var stateHandler = await _stateStore.TryLockStateOrDefaultAsync(cancellationToken);
+
+                // get existing stream
+                using var restoredStream = stateHandler.ResumeToken != null ? await _sourceRepository.TryGetStreamAsync(stateHandler.ResumeToken, cancellationToken) : null;
+                if (restoredStream != null)
+                {
+                    await ReplicateAsync(stateHandler, restoredStream, cancellationToken);
+                }
+                else
+                {
+                    await SyncAndReplicateAsync(stateHandler, cancellationToken);
+                }
             }
         }
 
-        public async Task IntenalExecuteAsync(CancellationToken cancellationToken = default)
+        public Task StartAsync(CancellationToken _ = default)
         {
-            await using var stateHandler = await _stateStore.TryLockStateOrDefaultAsync(cancellationToken);
+            if (_task != null)
+            {
+                throw new InvalidOperationException("Replication is already running.");
+            }
 
-            // get existing stream
-            using var restoredStream = stateHandler.ResumeToken != null ? await _sourceRepository.TryGetStreamAsync(stateHandler.ResumeToken, cancellationToken) : null;
-            if (restoredStream != null)
-            {
-                await ReplicateAsync(stateHandler, restoredStream, cancellationToken);
-            }
-            else
-            {
-                await SyncAndReplicateAsync(stateHandler, cancellationToken);
-            }
+            _task = IntenalExecuteAsync(_cancellationTokenSource.Token);
+
+            return Task.CompletedTask;
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken = default)
+        {
+            _isStopRequested = true;
+            using var registration = cancellationToken.Register(() => _cancellationTokenSource.Cancel());
+            await _task;
         }
 
         private async Task ReplicateAsync(IState stateHandler, IAsyncReplicationStream<TSourceDocument> stream, CancellationToken cancellationToken = default)
@@ -70,6 +88,11 @@ namespace Notidar.Mongo2Elastic
                         cancellationToken: cancellationToken);
                 }
                 await stateHandler.UpdateResumeTokenAsync(stream.GetResumeToken(), cancellationToken);
+
+                if (_isStopRequested)
+                {
+                    break;
+                }
             }
         }
 
@@ -87,6 +110,11 @@ namespace Notidar.Mongo2Elastic
                 if (batch.Any())
                 {
                     await _destinationRepository.BulkUpdateAsync(batch.Select(_map), Enumerable.Empty<TDestinationDocument>(), stateHandler.Version, cancellationToken);
+                }
+
+                if (_isStopRequested)
+                {
+                    break;
                 }
             }
 

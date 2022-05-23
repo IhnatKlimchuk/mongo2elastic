@@ -36,20 +36,11 @@ namespace Notidar.Mongo2Elastic.Tests.Features
 
         protected static async Task WithReplicationRunning(IReplicator replicator, Func<Task> action)
         {
-            using var cancellationTokenSource = new CancellationTokenSource();
-            var task = replicator.ExecuteAsync(cancellationTokenSource.Token);
+            await replicator.StartAsync();
 
             await action();
 
-            cancellationTokenSource.Cancel();
-            try
-            {
-                await task;
-            }
-            catch when (cancellationTokenSource.IsCancellationRequested)
-            {
-                // do noting here
-            }
+            await replicator.StopAsync();
         }
     }
 }
