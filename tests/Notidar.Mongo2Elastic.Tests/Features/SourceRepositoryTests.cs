@@ -18,7 +18,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
         {
         }
 
-        [Fact(Skip = "TEST")]
+        [Fact]
         public async Task SourceRepository_GetDocumentsAsync_UseExcludeProjection()
         {
             var sourceRepository = new SourceRepository<MongoPerson>(
@@ -51,7 +51,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             }
         }
 
-        [Fact(Skip = "TEST")]
+        [Fact]
         public async Task SourceRepository_TryGetStreamAsync_UseExcludeProjection()
         {
             var sourceRepository = new SourceRepository<MongoPerson>(

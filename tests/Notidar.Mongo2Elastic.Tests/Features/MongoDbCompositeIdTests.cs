@@ -28,7 +28,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
                 .Build();
         }
 
-        [Fact(Skip = "TEST")]
+        [Fact]
         public async Task GenericReplicator_ReplicateAlreadExistingDocument_WithCompositeId_Success()
         {
             await MongoDbFixture.ResetReplicationStateAsync("composite-id-persons");
@@ -47,7 +47,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             });
         }
 
-        [Fact(Skip = "TEST")]
+        [Fact]
         public async Task GenericReplicator_ReplicateAddedDocument_WithCompositeId_Success()
         {
             await MongoDbFixture.ResetReplicationStateAsync("composite-id-persons");
@@ -73,7 +73,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             });
         }
 
-        [Fact(Skip = "TEST")]
+        [Fact]
         public async Task GenericReplicator_ReplicateDeletedDocument_WithCompositeId_Success()
         {
             await MongoDbFixture.ResetReplicationStateAsync("composite-id-persons");
@@ -100,7 +100,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             });
         }
 
-        [Fact(Skip = "TEST")]
+        [Fact]
         public async Task GenericReplicator_ReplicateDocumentMultipleUpdates_WithCompositeId_Success()
         {
             await MongoDbFixture.ResetReplicationStateAsync("composite-id-persons");
