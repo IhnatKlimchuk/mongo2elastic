@@ -71,7 +71,7 @@ namespace Notidar.Mongo2Elastic.Tests.Fixtures.Elasticsearch
             var response = await Client.CountAsync<ElasticPerson>(ct: cancellationToken);
             if (!response.IsValid)
             {
-                throw new InvalidOperationException($"Failed to count persons {response.DebugInformation}", response.OriginalException);
+                throw new InvalidOperationException("Failed to count persons", response.OriginalException);
             }
 
             return response.Count;
