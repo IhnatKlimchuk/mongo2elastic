@@ -52,22 +52,11 @@ services:
     volumes:
       - m2e-test-mongo3:/data/db
 
-  mongosetup:
-    image: mongo:5.0
-    depends_on:
-      - mongodb1
-      - mongodb2
-      - mongodb3
-    volumes:
-      - .:/scripts
-    restart: "no"
-    entrypoint: [ "bash", "/scripts/mongo_setup.sh"]
-
   elasticsearch:
     image: elasticsearch:7.17.0
     container_name: m2e-test-elastic
     healthcheck:
-      test: curl -u elastic:elastic -s -f elasticsearch:9200/_cat/health >/dev/null || exit 1
+      test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
       interval: 1s
       timeout: 10s
       retries: 5
@@ -82,6 +71,22 @@ services:
       - 31100:9300
     volumes:
       - m2e-test-elastic:/usr/share/elasticsearch/data
+
+  mongosetup:
+    image: mongo:5.0
+    depends_on:
+      mongodb1:
+        condition: service_healthy
+      mongodb2:
+        condition: service_healthy
+      mongodb3:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - .:/scripts
+    restart: "no"
+    entrypoint: [ "bash", "/scripts/mongo_setup.sh"]
     
 volumes:
   m2e-test-mongo1:
