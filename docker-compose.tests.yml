@@ -13,8 +13,6 @@ services:
     command: mongod --bind_ip_all --replSet rs0 --quiet --logpath /dev/null
     extra_hosts:
       - host.docker.internal:host-gateway
-    networks:
-      - m2e-test-infra-network
     ports:
       - 30000:27017
     volumes:
@@ -32,8 +30,6 @@ services:
     command: mongod --bind_ip_all --replSet rs0 --quiet --logpath /dev/null
     extra_hosts:
       - host.docker.internal:host-gateway
-    networks:
-      - m2e-test-infra-network
     ports:
       - 30100:27017
     volumes:
@@ -51,8 +47,6 @@ services:
     command: mongod --bind_ip_all --replSet rs0 --quiet --logpath /dev/null 
     extra_hosts:
       - host.docker.internal:host-gateway
-    networks:
-      - m2e-test-infra-network
     ports:
       - 30200:27017
     volumes:
@@ -83,8 +77,6 @@ services:
       - logger.level=ERROR
     extra_hosts:
       - host.docker.internal:host-gateway
-    networks:
-      - m2e-test-infra-network
     ports:
       - 31000:9200
       - 31100:9300
@@ -100,7 +92,3 @@ volumes:
     name: m2e-test-mongo3
   m2e-test-elastic:
     name: m2e-test-elastic
-
-networks:
-  m2e-test-infra-network:
-    name: m2e-test-infra-network
