@@ -31,19 +31,16 @@ namespace Notidar.Mongo2Elastic.Tests.Features
                 .Build();
 
             ServiceProvider = new ServiceCollection()
-                .Configure<ReplicatorOptions>(Configuration.GetSection(nameof(ReplicatorOptions)))
                 .BuildServiceProvider();
         }
 
         protected static async Task WithReplicationRunning(IReplicator replicator, Func<Task> action)
         {
-            using var cancellationTokenSource = new CancellationTokenSource();
-            var task = replicator.ExecuteAsync(cancellationTokenSource.Token);
+            await replicator.StartAsync();
 
             await action();
 
-            cancellationTokenSource.Cancel();
-            await task;
+            await replicator.StopAsync();
         }
     }
 }

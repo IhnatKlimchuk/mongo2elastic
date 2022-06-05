@@ -1,5 +1,7 @@
-﻿using Notidar.Mongo2Elastic.Elasticsearch;
+﻿using Microsoft.Extensions.Logging;
+using Notidar.Mongo2Elastic.Elasticsearch;
 using Notidar.Mongo2Elastic.MongoDB;
+using Notidar.Mongo2Elastic.State;
 
 namespace Notidar.Mongo2Elastic.Builder
 {
@@ -12,17 +14,15 @@ namespace Notidar.Mongo2Elastic.Builder
         where TSource : class
     {
         private readonly Func<TSource, TDestination> _map;
-        private readonly ReplicatorOptions _options;
 
         private IStateRepository _stateRepository = null;
         private IDestinationRepository<TDestination> _destinationRepository = null;
         private ISourceRepository<TSource> _sourceRepository = null;
+        private ILogger<Replicator<TSource, TDestination>> _logger = null;
 
-        public ReplicatorBuilder(Func<TSource, TDestination> map, Action<ReplicatorOptions> configureAction = null)
+        public ReplicatorBuilder(Func<TSource, TDestination> map)
         {
             _map = map ?? throw new ArgumentNullException(nameof(map));
-            _options = new ReplicatorOptions();
-            configureAction?.Invoke(_options);
         }
 
         public IReplicatorDestinationBuilder<TSource, TDestination> Add(ISourceRepository<TSource> sourceRepository)
@@ -43,11 +43,17 @@ namespace Notidar.Mongo2Elastic.Builder
             return this;
         }
 
+        public IReplicatorBuilder<TSource, TDestination> Add(ILogger<Replicator<TSource, TDestination>> logger)
+        {
+            _logger = logger;
+            return this;
+        }
+
         public IReplicator Build() => new Replicator<TSource, TDestination>(
             _stateRepository ?? throw new InvalidOperationException(),
             _destinationRepository ?? throw new InvalidOperationException(),
             _sourceRepository ?? throw new InvalidOperationException(),
             _map ?? throw new InvalidOperationException(),
-            _options ?? throw new InvalidOperationException());
+            _logger);
     }
 }

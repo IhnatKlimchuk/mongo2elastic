@@ -13,9 +13,9 @@ using Xunit;
 
 namespace Notidar.Mongo2Elastic.Tests.Features
 {
-    public class MongoDbCompositeIdTests : TestBase
+    public sealed class MongoDbCompositeIdTests : TestBase, IAsyncDisposable 
     {
-        private readonly IReplicator _replicator;
+        private IReplicator _replicator;
 
         public MongoDbCompositeIdTests(MongoDbFixture mongoDbFixture, ElasticsearchFixture elasticsearchFixture) : base(mongoDbFixture, elasticsearchFixture)
         {
@@ -132,6 +132,16 @@ namespace Notidar.Mongo2Elastic.Tests.Features
                     Assert.Equal(latestPerson.UserName, elasticPerson?.UserName);
                 });
             });
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_replicator is not null)
+            {
+                await _replicator.DisposeAsync().ConfigureAwait(false);
+            }
+
+            _replicator = null;
         }
     }
 }

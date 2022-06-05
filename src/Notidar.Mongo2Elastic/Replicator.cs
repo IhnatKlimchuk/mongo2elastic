@@ -1,5 +1,7 @@
-﻿using Notidar.Mongo2Elastic.Elasticsearch;
+﻿using Microsoft.Extensions.Logging;
+using Notidar.Mongo2Elastic.Elasticsearch;
 using Notidar.Mongo2Elastic.MongoDB;
+using Notidar.Mongo2Elastic.State;
 
 namespace Notidar.Mongo2Elastic
 {
@@ -7,179 +9,159 @@ namespace Notidar.Mongo2Elastic
         where TSourceDocument : class
         where TDestinationDocument : class
     {
-        private readonly IStateRepository _replicationStateRepository;
+        private bool _isStopRequested = false;
+        private Task _task = null;
+        private CancellationTokenSource _cancellationTokenSource = new();
+
+        private readonly IStateRepository _stateStore;
         private readonly IDestinationRepository<TDestinationDocument> _destinationRepository;
         private readonly ISourceRepository<TSourceDocument> _sourceRepository;
         private readonly Func<TSourceDocument, TDestinationDocument> _map;
-        private readonly ReplicatorOptions _options;
-
-        private readonly Guid _replicatorId;
+        private readonly ILogger<Replicator<TSourceDocument, TDestinationDocument>>? _logger;
 
         public Replicator(
-            IStateRepository replicationStateRepository,
+            IStateRepository stateStore,
             IDestinationRepository<TDestinationDocument> destinationRepository,
             ISourceRepository<TSourceDocument> sourceRepository,
             Func<TSourceDocument, TDestinationDocument> map,
-            ReplicatorOptions options)
+            ILogger<Replicator<TSourceDocument, TDestinationDocument>> logger = null)
         {
-            _replicationStateRepository = replicationStateRepository;
+            _stateStore = stateStore;
             _destinationRepository = destinationRepository;
             _sourceRepository = sourceRepository;
             _map = map;
-            _options = options;
-
-            _replicatorId = Guid.NewGuid();
+            _logger = logger;
         }
 
         public async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            try
-            {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    try
-                    {
-                        var state = await _replicationStateRepository.TryLockStateAsync(
-                            replicatorId: _replicatorId,
-                            lockExpirationDateUtc: DateTime.UtcNow.Add(_options.LockTimeout),
-                            cancellationToken: cancellationToken);
-
-                        if (state != null)
-                        {
-                            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                            Task? lockUpdateTask = null;
-                            try
-                            {
-                                lockUpdateTask = Task.Run(
-                                    function: () => RefreshStateAsync(
-                                        state: state,
-                                        cancellationTokenSource: cancellationTokenSource,
-                                        cancellationToken: cancellationTokenSource.Token),
-                                    cancellationToken: cancellationTokenSource.Token);
-
-                                await ReplicateAsync(state, cancellationTokenSource.Token);
-                            }
-                            catch (Exception) when (cancellationTokenSource.Token.IsCancellationRequested)
-                            {
-                                // nothing
-                            }
-                            catch (Exception)
-                            {
-                                throw;
-                            }
-                            finally
-                            {
-                                cancellationTokenSource.Cancel();
-                                if (lockUpdateTask != null)
-                                {
-                                    await lockUpdateTask;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            await Task.Delay(_options.LockTimeout, cancellationToken);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        //nothing 
-                    }
-                }
-            }
-            finally
-            {
-                await _replicationStateRepository.TryUnlockStateAsync(
-                    replicatorId: _replicatorId,
-                    cancellationToken: default);
-            }
-        }
-
-        private async Task RefreshStateAsync(ReplicationState state, CancellationTokenSource cancellationTokenSource, CancellationToken cancellationToken)
-        {
-            while (!cancellationToken.IsCancellationRequested)
+            while (!_isStopRequested)
             {
                 try
                 {
-                    var resultState = await _replicationStateRepository.TryUpdateStateAsync(
-                        replicatorId: _replicatorId,
-                        version: state.Version,
-                        resumeToken: state.ResumeToken,
-                        lockExpirationDateUtc: DateTime.UtcNow.Add(_options.LockTimeout),
-                        cancellationToken: cancellationToken);
+                    await using var stateHandler = await _stateStore.TryLockStateOrDefaultAsync(cancellationToken);
 
-                    if (resultState == null)
+                    // get existing stream
+                    using var restoredStream = stateHandler.ResumeToken != null ? await _sourceRepository.TryGetStreamAsync(stateHandler.ResumeToken, cancellationToken) : null;
+                    if (restoredStream != null)
                     {
-                        throw new InvalidOperationException("Failed to update replication state.");
+                        await ReplicateAsync(stateHandler, restoredStream, cancellationToken);
                     }
-
-                    await Task.Delay(_options.StateUpdateDelay, cancellationToken);
+                    else
+                    {
+                        await SyncAndReplicateAsync(stateHandler, cancellationToken);
+                    }
                 }
                 catch
                 {
-                    cancellationTokenSource.Cancel();
+                    // do nothing
                 }
             }
         }
 
-        private async Task ReplicateAsync(ReplicationState state, CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken _ = default)
         {
-            using var stream = await GetStreamAsync(state, cancellationToken);
-
-            if (state.ResumeToken == null)
+            if (_task != null)
             {
-                state.Version++;
-                await _destinationRepository.PrepareForSynchronizationAsync(state.Version, cancellationToken);
-                await FullSyncAsync(state, cancellationToken);
+                throw new InvalidOperationException("Replication is already running.");
             }
 
-            await _destinationRepository.PrepareForReplicationAsync(state.Version, cancellationToken);
+            _task = ExecuteAsync(_cancellationTokenSource.Token);
+
+            return Task.CompletedTask;
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken = default)
+        {
+            _isStopRequested = true;
+            using var registration = cancellationToken.Register(() => _cancellationTokenSource.Cancel());
+            await _task;
+        }
+
+        private async Task ReplicateAsync(IState stateHandler, IAsyncReplicationStream<TSourceDocument> stream, CancellationToken cancellationToken = default)
+        {
+            await _destinationRepository.PrepareForReplicationAsync(stateHandler.Version, cancellationToken);
             await foreach (var batch in stream.WithCancellation(cancellationToken))
-            {
-                var resumeToken = stream.GetResumeToken();
-                await SyncBatchAsync(state, batch, cancellationToken);
-                state.ResumeToken = resumeToken;
-            }
-        }
-
-        private async Task SyncBatchAsync(ReplicationState state, IEnumerable<Operation<TSourceDocument>> changes, CancellationToken cancellationToken)
-        {
-            if (!changes.Any())
-            {
-                return;
-            }
-
-            var resultBatch = new Dictionary<object, (OperationType Operation, TDestinationDocument Document)>();
-            foreach (var change in changes)
-            {
-                resultBatch[change.Key] = (change.Type, _map(change.Document));
-            }
-
-            var operationToDocuments = resultBatch.ToLookup(x => x.Value.Operation, x => x.Value.Document);
-            await _destinationRepository.BulkUpdateAsync(
-                addOrUpdate: operationToDocuments[OperationType.AddOrUpdate],
-                delete: operationToDocuments[OperationType.Delete],
-                state.Version,
-                cancellationToken: cancellationToken);
-        }
-
-        private async Task<IAsyncReplicationStream<TSourceDocument>> GetStreamAsync(ReplicationState state, CancellationToken cancellationToken)
-        {
-            return await _sourceRepository.TryGetStreamAsync(state.ResumeToken, cancellationToken)
-                ?? await _sourceRepository.TryGetStreamAsync(resumeToken: state.ResumeToken = null, cancellationToken)
-                ?? throw new InvalidOperationException();
-        }
-
-        private async Task FullSyncAsync(ReplicationState state, CancellationToken cancellationToken)
-        {
-            var batchEnumerator = await _sourceRepository.GetDocumentsAsync(cancellationToken: cancellationToken);
-            await foreach (var batch in batchEnumerator)
             {
                 if (batch.Any())
                 {
-                    await _destinationRepository.BulkUpdateAsync(batch.Select(_map), Enumerable.Empty<TDestinationDocument>(), state.Version, cancellationToken);
+                    var resultBatch = new Dictionary<object, (OperationType Operation, TDestinationDocument Document)>();
+                    foreach (var change in batch)
+                    {
+                        resultBatch[change.Key] = (change.Type, _map(change.Document));
+                    }
+
+                    var operationToDocuments = resultBatch.ToLookup(x => x.Value.Operation, x => x.Value.Document);
+                    await _destinationRepository.BulkUpdateAsync(
+                        addOrUpdate: operationToDocuments[OperationType.AddOrUpdate],
+                        delete: operationToDocuments[OperationType.Delete],
+                        stateHandler.Version,
+                        cancellationToken: cancellationToken);
+                }
+                await stateHandler.UpdateResumeTokenAsync(stream.GetResumeToken(), cancellationToken);
+
+                if (_isStopRequested)
+                {
+                    break;
                 }
             }
+        }
+
+        private async Task SyncAndReplicateAsync(IState stateHandler, CancellationToken cancellationToken = default)
+        {
+            using var freshStream = await _sourceRepository.TryGetStreamAsync(null, cancellationToken) ?? throw new InvalidOperationException();
+
+            await stateHandler.UpdateResumeTokenAsync(null, cancellationToken);
+            await stateHandler.UpdateVersionAsync(stateHandler.Version + 1, cancellationToken);
+
+            await _destinationRepository.PrepareForSynchronizationAsync(stateHandler.Version, cancellationToken);
+            var batchEnumerator = await _sourceRepository.GetDocumentsAsync(cancellationToken: cancellationToken);
+            await foreach (var batch in batchEnumerator.WithCancellation(cancellationToken))
+            {
+                if (batch.Any())
+                {
+                    await _destinationRepository.BulkUpdateAsync(batch.Select(_map), Enumerable.Empty<TDestinationDocument>(), stateHandler.Version, cancellationToken);
+                }
+
+                if (_isStopRequested)
+                {
+                    break;
+                }
+            }
+
+            await stateHandler.UpdateResumeTokenAsync(freshStream.GetResumeToken(), cancellationToken);
+
+            await ReplicateAsync(stateHandler, freshStream, cancellationToken);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsyncCore().ConfigureAwait(false);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual async ValueTask DisposeAsyncCore()
+        {
+            if (_cancellationTokenSource is not null)
+            {
+                _cancellationTokenSource.Cancel();
+            }
+            if (_task is not null)
+            {
+                await _task.ConfigureAwait(false);
+            }
+
+            if (_cancellationTokenSource is not null)
+            {
+                _cancellationTokenSource.Dispose();
+            }
+            if (_task is not null)
+            {
+                _task.Dispose();
+            }
+
+            _cancellationTokenSource = null;
+            _task = null;
         }
     }
 }

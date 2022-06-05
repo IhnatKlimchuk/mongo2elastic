@@ -1,7 +1,8 @@
 ﻿namespace Notidar.Mongo2Elastic
 {
-    public interface IReplicator
+    public interface IReplicator : IAsyncDisposable
     {
-        Task ExecuteAsync(CancellationToken cancellationToken = default);
+        Task StartAsync(CancellationToken cancellationToken = default);
+        Task StopAsync(CancellationToken cancellationToken = default);
     }
 }
