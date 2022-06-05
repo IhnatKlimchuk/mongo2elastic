@@ -14,6 +14,7 @@ using Xunit;
 
 namespace Notidar.Mongo2Elastic.Tests.Features
 {
+    [Collection("Integration")]
     public sealed class GenericReplicatorTests : TestBase, IAsyncDisposable
     {
         private IReplicator _replicator;

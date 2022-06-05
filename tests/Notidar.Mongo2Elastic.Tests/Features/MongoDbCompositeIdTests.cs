@@ -13,6 +13,7 @@ using Xunit;
 
 namespace Notidar.Mongo2Elastic.Tests.Features
 {
+    [Collection("Integration")]
     public sealed class MongoDbCompositeIdTests : TestBase, IAsyncDisposable 
     {
         private IReplicator _replicator;

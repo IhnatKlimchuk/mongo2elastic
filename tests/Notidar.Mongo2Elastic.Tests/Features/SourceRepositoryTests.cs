@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Notidar.Mongo2Elastic.Tests.Features
 {
+    [Collection("Integration")]
     public class SourceRepositoryTests : TestBase
     {
         public SourceRepositoryTests(MongoDbFixture mongoDbFixture, ElasticsearchFixture elasticsearchFixture) : base(mongoDbFixture, elasticsearchFixture)
