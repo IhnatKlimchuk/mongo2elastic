@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Notidar.Mongo2Elastic.Elasticsearch;
+﻿using Notidar.Mongo2Elastic.Elasticsearch;
 using Notidar.Mongo2Elastic.MongoDB;
 using Notidar.Mongo2Elastic.State;
 
@@ -17,20 +16,17 @@ namespace Notidar.Mongo2Elastic
         private readonly IDestinationRepository<TDestinationDocument> _destinationRepository;
         private readonly ISourceRepository<TSourceDocument> _sourceRepository;
         private readonly Func<TSourceDocument, TDestinationDocument> _map;
-        private readonly ILogger<Replicator<TSourceDocument, TDestinationDocument>>? _logger;
 
         public Replicator(
             IStateRepository stateStore,
             IDestinationRepository<TDestinationDocument> destinationRepository,
             ISourceRepository<TSourceDocument> sourceRepository,
-            Func<TSourceDocument, TDestinationDocument> map,
-            ILogger<Replicator<TSourceDocument, TDestinationDocument>> logger = null)
+            Func<TSourceDocument, TDestinationDocument> map)
         {
             _stateStore = stateStore;
             _destinationRepository = destinationRepository;
             _sourceRepository = sourceRepository;
             _map = map;
-            _logger = logger;
         }
 
         public async Task ExecuteAsync(CancellationToken cancellationToken = default)
