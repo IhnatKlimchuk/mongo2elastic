@@ -22,7 +22,7 @@ jobs:
         run: docker-compose -f docker-compose.tests.yml up -d
 
       - name: Run tests
-        run: dotnet test ./tests/Notidar.Mongo2Elastic.Tests/Notidar.Mongo2Elastic.Tests.csproj"
+        run: dotnet test ./tests/Notidar.Mongo2Elastic.Tests/Notidar.Mongo2Elastic.Tests.csproj
 
       - name: Destroy tests infrastructure
         run: docker-compose -f docker-compose.tests.yml down

@@ -14,13 +14,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		LICENSE = LICENSE
 		mongo_setup.sh = mongo_setup.sh
 		README.md = README.md
+		.github\workflows\tests.yml = .github\workflows\tests.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Notidar.Mongo2Elastic.Abstractions", "src\Notidar.Mongo2Elastic.Abstractions\Notidar.Mongo2Elastic.Abstractions.csproj", "{1B6E8105-EE7D-4353-9B97-01207CA7B15F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notidar.Mongo2Elastic.Elasticsearch", "src\Notidar.Mongo2Elastic.Elasticsearch\Notidar.Mongo2Elastic.Elasticsearch.csproj", "{A4230440-DB15-4D54-A08F-908D42BB8F57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Notidar.Mongo2Elastic.Elasticsearch", "src\Notidar.Mongo2Elastic.Elasticsearch\Notidar.Mongo2Elastic.Elasticsearch.csproj", "{A4230440-DB15-4D54-A08F-908D42BB8F57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notidar.Mongo2Elastic.MongoDB", "src\Notidar.Mongo2Elastic.MongoDb\Notidar.Mongo2Elastic.MongoDB.csproj", "{66A09431-EF7A-47D0-A666-9DF28789357B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Notidar.Mongo2Elastic.MongoDB", "src\Notidar.Mongo2Elastic.MongoDb\Notidar.Mongo2Elastic.MongoDB.csproj", "{66A09431-EF7A-47D0-A666-9DF28789357B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
