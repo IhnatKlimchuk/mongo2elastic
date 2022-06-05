@@ -29,7 +29,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
                 .Build();
         }
 
-        [Fact]
+        [Fact(Skip = "TEST")]
         public async Task GenericReplicator_ReplicateAlreadExistingDocument_Success()
         {
             await MongoDbFixture.ResetReplicationStateAsync("persons");
@@ -66,7 +66,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             });
         }
 
-        [Fact]
+        [Fact(Skip = "TEST")]
         public async Task GenericReplicator_ReplicateAddedDocument_Success()
         {
             await MongoDbFixture.ResetReplicationStateAsync("persons");
@@ -92,7 +92,7 @@ namespace Notidar.Mongo2Elastic.Tests.Features
             });
         }
 
-        [Fact]
+        [Fact(Skip = "TEST")]
         public async Task GenericReplicator_ReplicateDeletedDocument_Success()
         {
             await MongoDbFixture.ResetReplicationStateAsync("persons");
